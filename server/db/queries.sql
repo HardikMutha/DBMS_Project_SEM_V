@@ -44,7 +44,31 @@ CREATE TABLE IF NOT EXISTS Booking (
   user_id INTEGER NOT NULL,
   campground_id INTEGER NOT NULL,
   date DATE,
+  price NUMERIC NOT NULL,
+  PRIMARY KEY(user_id,campground_id,dat),
   FOREIGN KEY(user_id) REFERENCES Users(id) ON DELETE CASCADE,
   FOREIGN KEY(campground_id) REFERENCES Campground(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS HasFacility(
+  facility_id INTEGER,
+  campground_id INTEGER,
+  PRIMARY KEY(facility_id,campground_id),
+  FOREIGN KEY(facility_id) REFERENCES Facility(id) ON DELETE CASCADE,
+  FOREIGN KEY(campground_id) REFERENCES Campground(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS HasFavourite(
+  user_id INTEGER,
+  campground_id INTEGER,
+  PRIMARY KEY(campground_id,user_id),
+  FOREIGN KEY(campground_id) REFERENCES Campground(id),
+  FOREIGN KEY(user_id) REFERENCES Users(id) 
+);
+
+CREATE TABLE IF NOT EXISTS Images(
+  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+  img_url VARCHAR(1024) NOT NULL,
+  campground_id INTEGER,
+  FOREIGN KEY(campground_id) REFERENCES Campground(id)
+);

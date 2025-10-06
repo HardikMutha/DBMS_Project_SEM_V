@@ -1,5 +1,7 @@
 import express from "express";
 import pool from "./db/db.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
 
@@ -9,7 +11,7 @@ app.listen(3000, () => {
 
 app.get("/", async (req, res) => {
   try {
-    const [rows, fields] = await pool.query("SELECT `field` FROM `table`");
+    const [rows, fields] = await pool.query("SELECT name FROM Nice");
     return res.status(200).json({ rows, fields });
   } catch (error) {
     console.log(error);

@@ -3,9 +3,20 @@ USE campground;
 CREATE TABLE IF NOT EXISTS Users(
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(255) UNIQUE NOT NULL,
+  role ENUM('admin','user') DEFAULT 'user',
   email VARCHAR(255) NOT NULL,
   password VARCHAR(255) NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS Request(
+  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+  requestedBy INTEGER NOT NULL,
+  campgroundId INTEGER NOT NULL,
+  status ENUM('approved','rejected','pending') DEFAULT 'pending',
+  FOREIGN KEY(requestedBy) REFERENCES Users(id) ON DELETE CASCADE,
+  FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE
+);
+
 
 CREATE TABLE IF NOT EXISTS Location (
   id INTEGER AUTO_INCREMENT PRIMARY KEY, 
@@ -18,57 +29,98 @@ CREATE TABLE IF NOT EXISTS Location (
 CREATE TABLE IF NOT EXISTS Campground (
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(64) NOT NULL,
-  loc_id INTEGER,
-  owner_id INTEGER NOT NULL,
-  FOREIGN KEY(owner_id) REFERENCES Users(id) ON DELETE CASCADE,
-  FOREIGN KEY(loc_id) REFERENCES Location(id) ON DELETE SET NULL 
+  description VARCHAR(4096),
+  capacity INTEGER NOT NULL,
+  type VARCHAR(64),
+  locId INTEGER,
+  ownerId INTEGER NOT NULL,
+  petFriendly BOOLEAN DEFAULT FALSE NOT NULL,
+  isApproved BOOLEAN DEFAULT FALSE NOT NULL,
+  price NUMERIC NOT NULL,
+  FOREIGN KEY(ownerId) REFERENCES Users(id) ON DELETE CASCADE,
+  FOREIGN KEY(locId) REFERENCES Location(id) ON DELETE SET NULL 
 );
 
-CREATE TABLE IF NOT EXISTS Facility (
+CREATE TABLE IF NOT EXISTS Amenity (
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) UNIQUE NOT NULL
+  name VARCHAR(255) UNIQUE NOT NULL,
+  isPaid BOOLEAN DEFAULT FALSE,
+  price NUMERIC DEFAULT 0.0 
 );
 
 
 CREATE TABLE IF NOT EXISTS Review (
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
-  user_id INTEGER NOT NULL,
-  campground_id INTEGER NOT NULL,
+  userId INTEGER NOT NULL,
+  campgroundId INTEGER NOT NULL,
   content VARCHAR(1024),
   rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-  FOREIGN KEY(user_id) REFERENCES Users(id) ON DELETE CASCADE,
-  FOREIGN KEY(campground_id) REFERENCES Campground(id) ON DELETE CASCADE
+  FOREIGN KEY(userId) REFERENCES Users(id) ON DELETE CASCADE,
+  FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Booking (
-  user_id INTEGER NOT NULL,
-  campground_id INTEGER NOT NULL,
-  date DATE,
-  price NUMERIC NOT NULL,
-  PRIMARY KEY(user_id,campground_id,dat),
-  FOREIGN KEY(user_id) REFERENCES Users(id) ON DELETE CASCADE,
-  FOREIGN KEY(campground_id) REFERENCES Campground(id) ON DELETE CASCADE
+  userId INTEGER NOT NULL,
+  campgroundId INTEGER NOT NULL,
+  checkInDate DATE,
+  checkOutDate DATE,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  amount NUMERIC NOT NULL, -- derived attribute from Campground(price)
+  PRIMARY KEY(userId,campgroundId,checkInDate),
+  FOREIGN KEY(userId) REFERENCES Users(id) ON DELETE CASCADE,
+  FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE,
+  CONSTRAINT check_date CHECK(checkInDate < checkOutDate),
 );
 
-CREATE TABLE IF NOT EXISTS HasFacility(
-  facility_id INTEGER,
-  campground_id INTEGER,
-  PRIMARY KEY(facility_id,campground_id),
-  FOREIGN KEY(facility_id) REFERENCES Facility(id) ON DELETE CASCADE,
-  FOREIGN KEY(campground_id) REFERENCES Campground(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS HasAmenity(
+  amenity_id INTEGER,
+  campgroundId INTEGER,
+  PRIMARY KEY(amenity_id,campgroundId),
+  FOREIGN KEY(amenity_id) REFERENCES Amenity(id) ON DELETE CASCADE,
+  FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS HasFavourite(
-  user_id INTEGER,
-  campground_id INTEGER,
-  PRIMARY KEY(campground_id,user_id),
-  FOREIGN KEY(campground_id) REFERENCES Campground(id),
-  FOREIGN KEY(user_id) REFERENCES Users(id) 
+  userId INTEGER,
+  campgroundId INTEGER,
+  PRIMARY KEY(campgroundId,userId),
+  FOREIGN KEY(campgroundId) REFERENCES Campground(id),
+  FOREIGN KEY(userId) REFERENCES Users(id) 
 );
 
 CREATE TABLE IF NOT EXISTS Images(
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
-  img_url VARCHAR(1024) NOT NULL,
-  campground_id INTEGER,
-  FOREIGN KEY(campground_id) REFERENCES Campground(id)
+  imgUrl VARCHAR(1024) NOT NULL,
+  campgroundId INTEGER,
+  FOREIGN KEY(campgroundId) REFERENCES Campground(id)
+);
+
+
+CREATE TABLE Notifications(
+  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+  content VARCHAR(1024) NOT NULL,
+  userId INTEGER NOT NULL,
+  viewed BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (userId) REFERENCES Users(id)
+);
+
+CREATE TABLE IF NOT EXISTS FAQs(
+  faqId INTEGER AUTO_INCREMENT PRIMARY KEY,
+  question VARCHAR(1024) NOT NULL,
+  answer VARCHAR(2048) NOT NULL,
+);
+
+CREATE TABLE IF NOT EXISTS Rules(
+  campgroundId INTEGER NOT NULL,
+  ruleId INTEGER AUTO_INCREMENT,
+  checkInStart TIME NOT NULL DEFAULT "14:00:00", 
+  checkInEnd TIME NOT NULL DEFAULT "00:00:00",
+  checkOutStart TIME NOT NULL DEFAULT "00:00:00",
+  checkOutEnd TIME NOT NULL DEFAULT "12:00:00",
+  cancellationPolicy VARCHAR(1024),
+  cash BOOLEAN DEFAULT TRUE,
+  upi BOOLEAN DEFAULT FALSE,
+  card BOOLEAN DEFAULT FALSE,
+  PRIMARY KEY (campgroundId,ruleId),
+  FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE
 );

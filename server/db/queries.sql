@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS Review (
 
 CREATE TABLE IF NOT EXISTS Booking (
   userId INTEGER NOT NULL,
+  bookingId INTEGER AUTO_INCREMENT UNIQUE NOT NULL,
   campgroundId INTEGER NOT NULL,
   checkInDate DATE,
   checkOutDate DATE,
@@ -69,7 +70,7 @@ CREATE TABLE IF NOT EXISTS Booking (
   PRIMARY KEY(userId,campgroundId,checkInDate),
   FOREIGN KEY(userId) REFERENCES Users(id) ON DELETE CASCADE,
   FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE,
-  CONSTRAINT check_date CHECK(checkInDate < checkOutDate),
+  CONSTRAINT check_date CHECK(checkInDate < checkOutDate)
 );
 
 CREATE TABLE IF NOT EXISTS HasAmenity(
@@ -89,20 +90,37 @@ CREATE TABLE IF NOT EXISTS HasFavourite(
 );
 
 CREATE TABLE IF NOT EXISTS Images(
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+  id INTEGER,
   imgUrl VARCHAR(1024) NOT NULL,
   campgroundId INTEGER,
+  PRIMARY KEY(id,campgroundId)
   FOREIGN KEY(campgroundId) REFERENCES Campground(id)
 );
 
 
-CREATE TABLE Notifications(
+CREATE TABLE IF NOT EXISTS Notifications(
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
   content VARCHAR(1024) NOT NULL,
-  userId INTEGER NOT NULL,
+  userId INTEGER NOT NULL ,--jisko bhejna hai woh
   viewed BOOLEAN DEFAULT FALSE,
+  -- type ENUM('Approval','Booking'),
   FOREIGN KEY (userId) REFERENCES Users(id)
 );
+
+CREATE TABLE IF NOT EXISTS ApprovalNotif (
+  notifId INTEGER PRIMARY KEY,
+  requestId INTEGER NOT NULL,
+  FOREIGN KEY(requestId) REFERENCES Request(id) ON DELETE CASCADE,
+  FOREIGN KEY(notifId) REFERENCES Notifications(id) ON DELETE CASCADE  
+);
+
+CREATE TABLE IF NOT EXISTS BookingNotif (
+  notifId INTEGER PRIMARY KEY,
+  bookingId INTEGER,
+  FOREIGN KEY(bookingId) REFERENCES Booking(bookingId) ON DELETE CASCADE,
+  FOREIGN KEY(notifId) REFERENCES Notifications(id) ON DELETE CASCADE
+);
+
 
 CREATE TABLE IF NOT EXISTS FAQs(
   faqId INTEGER AUTO_INCREMENT PRIMARY KEY,

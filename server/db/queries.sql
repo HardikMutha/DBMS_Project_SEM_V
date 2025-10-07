@@ -8,16 +8,6 @@ CREATE TABLE IF NOT EXISTS Users(
   password VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Request(
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
-  requestedBy INTEGER NOT NULL,
-  campgroundId INTEGER NOT NULL,
-  status ENUM('approved','rejected','pending') DEFAULT 'pending',
-  FOREIGN KEY(requestedBy) REFERENCES Users(id) ON DELETE CASCADE,
-  FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE
-);
-
-
 CREATE TABLE IF NOT EXISTS Location (
   id INTEGER AUTO_INCREMENT PRIMARY KEY, 
   place VARCHAR(64) NOT NULL,
@@ -41,13 +31,21 @@ CREATE TABLE IF NOT EXISTS Campground (
   FOREIGN KEY(locId) REFERENCES Location(id) ON DELETE SET NULL 
 );
 
+CREATE TABLE IF NOT EXISTS Request(
+  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+  requestedBy INTEGER NOT NULL,
+  campgroundId INTEGER NOT NULL,
+  status ENUM('approved','rejected','pending') DEFAULT 'pending',
+  FOREIGN KEY(requestedBy) REFERENCES Users(id) ON DELETE CASCADE,
+  FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS Amenity (
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) UNIQUE NOT NULL,
   isPaid BOOLEAN DEFAULT FALSE,
   price NUMERIC DEFAULT 0.0 
 );
-
 
 CREATE TABLE IF NOT EXISTS Review (
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
@@ -66,7 +64,7 @@ CREATE TABLE IF NOT EXISTS Booking (
   checkInDate DATE,
   checkOutDate DATE,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  amount NUMERIC NOT NULL, -- derived attribute from Campground(price)
+  amount NUMERIC NOT NULL,
   PRIMARY KEY(userId,campgroundId,checkInDate),
   FOREIGN KEY(userId) REFERENCES Users(id) ON DELETE CASCADE,
   FOREIGN KEY(campgroundId) REFERENCES Campground(id) ON DELETE CASCADE,
@@ -93,17 +91,15 @@ CREATE TABLE IF NOT EXISTS Images(
   id INTEGER,
   imgUrl VARCHAR(1024) NOT NULL,
   campgroundId INTEGER,
-  PRIMARY KEY(id,campgroundId)
+  PRIMARY KEY(id,campgroundId),
   FOREIGN KEY(campgroundId) REFERENCES Campground(id)
 );
-
 
 CREATE TABLE IF NOT EXISTS Notifications(
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
   content VARCHAR(1024) NOT NULL,
-  userId INTEGER NOT NULL ,--jisko bhejna hai woh
+  userId INTEGER NOT NULL,
   viewed BOOLEAN DEFAULT FALSE,
-  -- type ENUM('Approval','Booking'),
   FOREIGN KEY (userId) REFERENCES Users(id)
 );
 
@@ -121,11 +117,10 @@ CREATE TABLE IF NOT EXISTS BookingNotif (
   FOREIGN KEY(notifId) REFERENCES Notifications(id) ON DELETE CASCADE
 );
 
-
 CREATE TABLE IF NOT EXISTS FAQs(
   faqId INTEGER AUTO_INCREMENT PRIMARY KEY,
   question VARCHAR(1024) NOT NULL,
-  answer VARCHAR(2048) NOT NULL,
+  answer VARCHAR(2048) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS Rules(

@@ -54,11 +54,92 @@ Travelers seeking outdoor camping experiences often struggle to find verified, w
 
 ## ER Diagram
 
-![image](erdiagram.png)
+![image](cg-er-svg-final.svg)
 
 
-## Relational Schema
+## Relational Schemas
+
+1. **Users**
+    - `(id PK, username U, role, email, password)`
+
+2. **Location**
+    - `(id PK, place, longitude, latitude, UNIQUE(longitude, latitude))`
+
+3. **Campground**
+    - `(id PK, title, description, capacity, type, locId FK → Location(id), ownerId FK → Users(id), isApproved, price)`
+
+4. **Request**
+    - `(id PK, requestedBy FK → Users(id), campgroundId FK → Campground(id), status)`
+
+5. **Amenity**
+    - `(id PK, name U, isPaid, price)`
+
+6. **Review**
+    - `(id PK, userId FK → Users(id), campgroundId FK → Campground(id), content, rating)`
+
+7. **Booking**
+    - `(userId FK → Users(id), bookingId U, campgroundId FK → Campground(id), checkInDate, checkOutDate, createdAt, amount, PRIMARY KEY(userId,campgroundId,checkInDate))`
+
+8. **HasAmenity**
+    - `(amenity_id FK → Amenity(id), campgroundId FK → Campground(id), PRIMARY KEY(amenity_id,campgroundId))`
+
+9. **HasFavourite**
+    - `(userId FK → Users(id), campgroundId FK → Campground(id), PRIMARY KEY(campgroundId,userId))`
+
+10. **Images**
+    - `(id, imgUrl, campgroundId FK → Campground(id), PRIMARY KEY(id,campgroundId))`
+
+11. **Notifications**
+    - `(id PK, content, userId FK → Users(id), viewed)`
+
+12. **ApprovalNotif**
+    - `(notifId PK FK → Notifications(id), requestId FK → Request(id))`
+
+13. **BookingNotif**
+    - `(notifId PK FK → Notifications(id), bookingId FK → Booking(bookingId))`
+
+14. **FAQs**
+    - `(faqId PK, question, answer)`
+
+15. **Rules**
+    - `(campgroundId PK FK → Campground(id), checkInStart, checkInEnd, checkOutStart, checkOutEnd, cancellationPolicy, cash, upi, card)`
 
 
 ## Functional Dependencies
 
+1. **Users**
+    - id → {username, role, email, password} (Primary Key)
+    - username → {id, role, email, password} (UNIQUE)
+
+2. **Location**
+    - id → {place, longitude, latitude} (Primary Key)
+    - {longitude, latitude} → {id, place} (UNIQUE)
+
+3. **Campground**
+    - id → {title, description, capacity, type, locId, ownerId, isApproved, price} (Primary Key)
+
+4. **Request**
+    - id → {requestedBy, campgroundId, status}
+
+5. **Amenity**
+    - id → {name, isPaid, price} (Primary Key)
+    - name → {id, isPaid, price} (UNIQUE)
+
+6. **Review**
+    - id → {userId, campgroundId, content, rating} (Primary Key)
+
+7. **Booking**
+    - {userId, campgroundId, checkInDate} → {bookingId, checkOutDate, createdAt, amount} (Primary Key)
+    - bookingId → {userId, campgroundId, checkInDate, checkOutDate, createdAt, amount} (UNIQUE)
+
+8. **Images**
+    - {id, campgroundId} → {imgUrl} (Primary Key)
+
+9. **Notification**
+    - id → {content, userId, viewed} (Primary Key)
+
+10. **FAQs**
+    - faqId → {question, answer} (Primary Key)
+
+11. **Rules**
+    - campgroundId → {checkInStart, checkInEnd, checkOutStart, checkOutEnd, cancellationPolicy, cash, upi, card} (Primary Key)

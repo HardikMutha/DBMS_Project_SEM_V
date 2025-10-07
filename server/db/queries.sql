@@ -1,6 +1,6 @@
 CREATE DATABASE IF NOT EXISTS campgrounds_db;
 
-USE campground;
+USE campgrounds_db;
 
 CREATE TABLE IF NOT EXISTS Users(
   id INTEGER AUTO_INCREMENT PRIMARY KEY,

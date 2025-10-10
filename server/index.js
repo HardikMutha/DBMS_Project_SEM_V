@@ -1,21 +1,18 @@
 import express from "express";
-import pool from "./db/db.js";
 import dotenv from "dotenv";
+import authRoutes from "./routes/auth.js";
+import cors from "cors";
+
 dotenv.config({ quiet: true });
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-app.listen(3000, () => {
-  console.log("listen on port 3000");
-});
+app.use("/api/auth", authRoutes);
 
-app.get("/", async (req, res) => {
-  try {
-    console.log(pool);
-    const [rows, fields] = await pool.query("SELECT * FROM Users");
-    return res.status(200).json({ rows, fields });
-  } catch (error) {
-    console.log(error);
-    return res.status(404).json({ success: false });
-  }
+app.get("/api", (req, res) => res.send("API is running..."));
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log(`Server running on port ${process.env.PORT || 3000}`);
 });

@@ -4,10 +4,17 @@ import { createSecretToken } from "../utils/token.js";
 
 export const signupUser = async (req, res) => {
   const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ success: false, error: "Username, email and password are required" });
+  }
   try {
     const hashedPassword = await hashPassword(password);
+
     const result = await createUser({ username, email, password: hashedPassword });
+
+    // create the secret token with user id as the only field. Not added email coz user privacy is important
     const token = createSecretToken(result?.insertId, process.env.JWT_SECRET);
+
     res.status(201).json({ success: true, data: { userId: result?.insertId, username }, token });
   } catch (error) {
     console.error(error?.message);
@@ -39,6 +46,21 @@ export const loginUser = async (req, res) => {
     res.status(200).json({ success: true, data: { userId: user.id, username: user.username }, token });
   } catch (error) {
     console.error(error?.message);
+    res.status(500).json({ error: error?.message || "Internal server error" });
+  }
+};
+
+export const createAdmin = async (req, res) => {
+  const { username, email, password } = req.body;
+  try {
+    if (!username || !email || !password) {
+      return res.status(400).json({ success: false, error: "Username, email and password are required" });
+    }
+    const hashedPassword = await hashPassword(password);
+    const result = await createUser({ username, email, password: hashedPassword, role: "admin" });
+    res.status(201).json({ success: true, data: { userId: result?.insertId, username } });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error?.message || "Internal server error" });
   }
 };

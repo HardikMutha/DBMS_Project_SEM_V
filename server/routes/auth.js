@@ -1,11 +1,13 @@
 import express from "express";
 const router = express.Router();
-import { signupUser, loginUser } from "../controllers/authController.js";
-import { authenticateUser } from "../middleware/authenticateUser.js";
+import { signupUser, loginUser, createAdmin } from "../controllers/authController.js";
+import { authenticateUser, verifyAdminSignup } from "../middleware/authenticateUser.js";
 
 router.post("/signup", signupUser);
 
 router.post("/login", loginUser);
+
+router.post("/create-admin", verifyAdminSignup, createAdmin);
 
 router.post("/verify-user", authenticateUser, (req, res) => {
   if (req?.user === undefined) {

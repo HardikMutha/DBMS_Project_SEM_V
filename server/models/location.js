@@ -9,12 +9,12 @@ export const createLocation = async function ({ place, longitude, latitude }) {
   return result;
 };
 
-export const getPlaceLocation = async function (place) {
-  const [rows] = await pool.query(`SELECT * FROM Location WHERE place = ?`, place);
-  return rows[0];
-};
-
-export const deleteLocation = async function (place) {
-  const [rows] = await pool.query(`DELETE FROM Location WHERE place = ?`, place);
+export const deleteLocation = async function (id) {
+  const [rows] = await pool.query(`DELETE FROM Location WHERE id = ?`, id);
   return rows;
+}
+
+export const getLocationById = async function (id) {
+  const [rows] = await pool.query(`SELECT * FROM Location WHERE id =?`, id);
+  return rows[0];
 }

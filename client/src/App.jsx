@@ -1,11 +1,11 @@
+import AuthPage from "./components/AuthPage";
 
 function App() {
-
   return (
     <>
-     <h1>Hello World</h1> 
+      <AuthPage />
     </>
-  )
+  );
 }
 
-export default App
+export default App;

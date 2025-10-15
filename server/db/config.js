@@ -17,4 +17,13 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 0,
 });
 
+export const getDBConnection = async () => {
+  try {
+    const connection = await pool.getConnection();
+    return connection;
+  } catch (error) {
+    return null;
+  }
+};
+
 export default pool;

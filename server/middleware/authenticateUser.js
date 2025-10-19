@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { verifyToken } from "../utils/token.js";
 import { getUserById } from "../models/user.js";
+import { getDBConnection } from "../db/config.js";
 
 export const verifyAdminSignup = async (req, res, next) => {
   try {
@@ -32,8 +33,9 @@ export const authenticateAdmin = async (req, res, next) => {
     if (!id) {
       return res.status(401).json({ success: false, message: "Invalid Token Please Login Again" });
     }
+    const connection = await getDBConnection();
 
-    const foundUser = await getUserById(id);
+    const foundUser = await getUserById(connection, id);
 
     if (!foundUser || foundUser?.role !== "admin") {
       return res.status(401).json({ success: false, message: "You are Not Authorized" });
@@ -61,7 +63,8 @@ export const authenticateUser = async (req, res, next) => {
     if (!id) {
       return res.status(401).json({ success: false, message: "Invalid Token Please Login Again" });
     }
-    const foundUser = await getUserById(id);
+    const connection = await getDBConnection();
+    const foundUser = await getUserById(connection, id);
 
     if (!foundUser) {
       return res.status(401).json({ success: false, message: "You are Not Authorized" });

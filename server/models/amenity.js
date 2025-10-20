@@ -1,5 +1,3 @@
-import connection from "../db/config.js";
-
 export const createAmenity = async function (connection, { name, isPaid, price }) {
   const [result] = connection.query(`INSERT INTO Amenity VALUES (?, ?, ?)`, name, isPaid, price);
   return result;

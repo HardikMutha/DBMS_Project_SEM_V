@@ -1,13 +1,14 @@
 import express from "express";
-const router = express.Router();
-import { signupUser, loginUser, createAdmin } from "../controllers/authController.js";
+import { signupUser, loginUser, createAdmin, loginAdmin } from "../controllers/authController.js";
 import { authenticateUser, verifyAdminSignup } from "../middleware/authenticateUser.js";
+const router = express.Router();
 
 router.post("/signup", signupUser);
 
 router.post("/login", loginUser);
 
-router.post("/create-admin", verifyAdminSignup, createAdmin);
+router.post("/admin-signup", verifyAdminSignup, createAdmin);
+router.post("/admin-login", loginAdmin);
 
 router.post("/verify-user", authenticateUser, (req, res) => {
   if (req?.user === undefined) {

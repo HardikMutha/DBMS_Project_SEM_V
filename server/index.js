@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import campgroundRouter from "./routes/campground.js";
 import requestRouter from "./routes/request.js";
+import reviewRouter from "./routes/review.js";
 
 dotenv.config({ quiet: true });
 
@@ -18,6 +19,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/campground", campgroundRouter);
 app.use("/api/requests", requestRouter);
+app.use("/api/review", reviewRouter);
 
 app.get("/api", (req, res) => res.send("API is running..."));
 

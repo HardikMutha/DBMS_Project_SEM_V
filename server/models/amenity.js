@@ -22,3 +22,19 @@ export const getPriceRangeAmenities = async function (connection, low, high) {
   const [rows] = await connection.query(`SELECT * FROM Amenity WHERE price >= ? AND price <= ?`, low, high);
   return rows;
 };
+
+export const addCampgroundAmenity = async function (connection, { campgroundId, amenity_id }) {
+  const [result] = await connection.query(`INSERT INTO HasAmenity (amenity_id, campgroundId) VALUES (?, ?)`, [
+    amenity_id,
+    campgroundId,
+  ]);
+  return result;
+};
+
+export const removeCampgroundAmenity = async function (connection, { campgroundId, amenity_id }) {
+  const [result] = await connection.query(`DELETE FROM HasAmenity WHERE campgroundId = ? AND amenity_id = ?`, [
+    campgroundId,
+    amenity_id,
+  ]);
+  return result;
+};

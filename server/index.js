@@ -1,13 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config({ quiet: true });
 import authRoutes from "./routes/auth.js";
 import bodyParser from "body-parser";
 import cors from "cors";
 import campgroundRouter from "./routes/campground.js";
 import requestRouter from "./routes/request.js";
 import reviewRouter from "./routes/review.js";
-
-dotenv.config({ quiet: true });
 
 const app = express();
 app.use(cors());

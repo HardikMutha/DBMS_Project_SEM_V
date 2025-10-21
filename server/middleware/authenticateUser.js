@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { verifyToken } from "../utils/token.js";
 import { getUserById } from "../models/user.js";
+import { getDBConnection } from "../db/config.js";
 
 export const verifyAdminSignup = async (req, res, next) => {
   try {
@@ -20,6 +21,10 @@ export const verifyAdminSignup = async (req, res, next) => {
 
 // This middleware will only be used when approval of campground and request is needed
 export const authenticateAdmin = async (req, res, next) => {
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "DB Connection Error" });
+  }
   try {
     const token = req.headers.authorization.split(" ")[1];
 
@@ -33,12 +38,15 @@ export const authenticateAdmin = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "Invalid Token Please Login Again" });
     }
 
-    const foundUser = await getUserById(id);
+    await connection.beginTransaction();
+    const foundUser = await getUserById(connection, id);
 
     if (!foundUser || foundUser?.role !== "admin") {
       return res.status(401).json({ success: false, message: "You are Not Authorized" });
     }
     req.user = foundUser;
+    await connection.commit();
+    connection.release();
     return next();
   } catch (err) {
     if (err instanceof jwt.JsonWebTokenError) {
@@ -46,10 +54,16 @@ export const authenticateAdmin = async (req, res, next) => {
     }
     console.log(err);
     return res.status(500).json({ success: false, message: "An Error Occured" });
+  } finally {
+    connection.release();
   }
 };
 
 export const authenticateUser = async (req, res, next) => {
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "DB Connection Error" });
+  }
   try {
     const token = req?.headers?.authorization?.split(" ")[1];
     if (!token) {
@@ -61,7 +75,8 @@ export const authenticateUser = async (req, res, next) => {
     if (!id) {
       return res.status(401).json({ success: false, message: "Invalid Token Please Login Again" });
     }
-    const foundUser = await getUserById(id);
+
+    const foundUser = await getUserById(connection, id);
 
     if (!foundUser) {
       return res.status(401).json({ success: false, message: "You are Not Authorized" });
@@ -74,5 +89,7 @@ export const authenticateUser = async (req, res, next) => {
     }
     console.log(err);
     return res.status(500).json({ success: false, message: "An Error Occured" });
+  } finally {
+    connection.release();
   }
 };

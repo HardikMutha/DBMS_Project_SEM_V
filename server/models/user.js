@@ -1,5 +1,3 @@
-import pool from "../db/config.js";
-
 export const createUser = async function (connection, { username, email, password, role = "user" }) {
   const [result] = await connection.query(`INSERT INTO Users (username, email, password, role) VALUES (?, ?, ?, ?)`, [
     username,

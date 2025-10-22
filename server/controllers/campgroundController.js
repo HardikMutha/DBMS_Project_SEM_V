@@ -1,5 +1,6 @@
 import { createCampgroundQuery, getCampgroundByIdQuery } from "../models/campground.js";
 import { createLocationQuery } from "../models/location.js";
+import { addImagesQuery } from "../models/images.js";
 import { createRequestQuery } from "../models/request.js";
 import { getDBConnection } from "../db/config.js";
 
@@ -9,6 +10,9 @@ export const createCampground = async (req, res) => {
     return res.status(500).json({ success: false, message: "DB Connection Error" });
   }
   const { title, description, capacity, type, latitude, longitude, place, price } = req?.body;
+  if (!req.files || !req?.files.length) {
+    return res.status(400).json({ success: false, message: "Images not provided" });
+  }
   try {
     await connection.beginTransaction();
     const newLocation = await createLocationQuery(connection, { place, longitude, latitude });
@@ -21,6 +25,9 @@ export const createCampground = async (req, res) => {
       ownerId: req?.user?.id,
       price,
     });
+    for (const file of req?.files) {
+      await addImagesQuery(connection, file?.location, newCampground?.insertId);
+    }
     await createRequestQuery(connection, { requestedBy: req?.user?.id, campgroundId: newCampground?.insertId });
     await connection.commit();
     return res.status(201).json({ success: true, data: newCampground });

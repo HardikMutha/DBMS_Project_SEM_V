@@ -6,12 +6,12 @@ export const createCampgroundQuery = async function (connection, { title, descri
   return result;
 };
 
-export const getCampgroundByIdQuery = async function (connection, campgroundId) {
+export const getCampgroundByIdQuery = async function (connection, { campgroundId }) {
   const [rows] = await connection.query(`SELECT * FROM Campground WHERE id = ?`, [campgroundId]);
   return rows[0];
 };
 
-export const addToFavourites = async function (connection, { userId, campgroundId }) {
+export const addToFavouritesQuery = async function (connection, { userId, campgroundId }) {
   const [result] = await connection.query(`INSERT INTO HasFavourite (userId, campgroundId) VALUES (?, ?)`, [
     userId,
     campgroundId,
@@ -19,7 +19,7 @@ export const addToFavourites = async function (connection, { userId, campgroundI
   return result;
 };
 
-export const removeFromFavourites = async function (connection, { userId, campgroundId }) {
+export const removeFromFavouritesQuery = async function (connection, { userId, campgroundId }) {
   const [result] = await connection.query(`DELETE FROM HasFavourite WHERE userId = ? AND campgroundId = ?`, [
     userId,
     campgroundId,
@@ -27,7 +27,14 @@ export const removeFromFavourites = async function (connection, { userId, campgr
   return result;
 };
 
-export const getUserFavourites = async function (connection, id) {
+export const getUserFavouritesQuery = async function (connection, id) {
   const [rows] = await connection.query(`SELECT * FROM HasFavourite WHERE userId = ?`, id);
   return rows;
+};
+
+export const getOwnerInfoQuery = async function (connection, { campgroundId }) {
+  const [rows] = await connection.query(
+    `SELECT u.username,u.email FROM Users AS u LEFT JOIN Campground AS cg ON u.id = ${campgroundId}`,
+  );
+  return rows[0];
 };

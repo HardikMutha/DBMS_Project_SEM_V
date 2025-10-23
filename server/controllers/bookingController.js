@@ -19,7 +19,7 @@ export const createBooking = async (req, res) => {
   }
   try {
     await connection.beginTransaction();
-    const campground = await getCampgroundByIdQuery(connection, campgroundId);
+    const campground = await getCampgroundByIdQuery(connection, { campgroundId });
     if (!campground) {
       return res.status(404).json({ success: false, message: "Campground not found" });
     }
@@ -37,7 +37,7 @@ export const createBooking = async (req, res) => {
     });
 
     await connection.commit();
-    return res.status(201).json({ success: true, data: { result, newNotification } });
+    return res.status(201).json({ success: true, data: { bookingInfo: result, newNotification } });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ success: false, message: err?.message || "Internal Server Error" });

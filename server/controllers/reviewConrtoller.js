@@ -12,7 +12,6 @@ export const addReview = async (req, res) => {
   try {
     await connection.beginTransaction();
     const result = await createReview(connection, { userId: req?.user?.id, campgroundId, content, rating });
-    console.log(result);
     // can send notification to owner
     await connection.commit();
     return res.status(201).json({ success: true, message: "Added review" });
@@ -33,7 +32,6 @@ export const getAllCampgroundReviews = async (req, res) => {
   try {
     await connection.beginTransaction();
     const data = await getCampgroundReviews(connection, campgroundId);
-    console.log(data);
     await connection.commit();
     return res.status(200).json({ success: true, data });
   } catch (error) {

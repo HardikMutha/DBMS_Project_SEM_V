@@ -1,4 +1,11 @@
-import { createCampgroundQuery, getCampgroundByIdQuery } from "../models/campground.js";
+import {
+  addToFavouritesQuery,
+  createCampgroundQuery,
+  getCampgroundByIdQuery,
+  getOwnerInfoQuery,
+  removeFromFavouritesQuery,
+} from "../models/campground.js";
+import { getCampgroundReviews } from "../models/review.js";
 import { createLocationQuery } from "../models/location.js";
 import { addImagesQuery } from "../models/images.js";
 import { createRequestQuery } from "../models/request.js";
@@ -49,14 +56,78 @@ export const getCampgroundById = async (req, res) => {
     return res.status(500).json({ success: false, message: "DB Connection Error" });
   }
   try {
-    const campground = await getCampgroundByIdQuery(connection, id);
+    const campground = await getCampgroundByIdQuery(connection, { campgroundId: id });
     if (!campground) {
       return res.status(404).json({ success: false, message: "Campground not found" });
     }
-    return res.status(200).json({ success: true, data: campground });
+    const ownerInfo = await getOwnerInfoQuery(connection, { campgroundId: campground?.id });
+    const allReviews = await getCampgroundReviews(connection, { campgroundId: campground?.id });
+    return res.status(200).json({ success: true, data: { campground, ownerInfo, allReviews } });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const addCampgroundToFavourite = async (req, res) => {
+  const userId = req?.user?.id;
+  const { campgroundId } = req.body;
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Please Login to use Favourites" });
+  }
+  if (!campgroundId) {
+    return res.status(400).json({ success: false, message: "Campground ID not provided" });
+  }
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "DB Connection Error" });
+  }
+  try {
+    const campground = await getCampgroundByIdQuery(connection, campgroundId);
+    if (!campground || !campground?.isApproved) {
+      return res.status(404).json({ success: false, message: "Campground not found" });
+    }
+    const updateFavourites = await addToFavouritesQuery(connection, { userId, campgroundId });
+    return res.status(200).json({ success: true, data: { updateFavourites } });
+  } catch (err) {
+    if (err?.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ success: false, message: "Already in Favourites" });
+    }
+    console.log(err);
+    return res.status(500).json({ success: false, message: err?.message || "Internal Server Error" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const removeCampgroundFromFavourites = async (req, res) => {
+  const userId = req?.user?.id;
+  const { campgroundId } = req.body;
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Please Login to use Favourites" });
+  }
+  if (!campgroundId) {
+    return res.status(400).json({ success: false, message: "Campground ID not provided" });
+  }
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "DB Connection Error" });
+  }
+  try {
+    const campground = await getCampgroundByIdQuery(connection, campgroundId);
+    if (!campground || !campground?.isApproved) {
+      return res.status(404).json({ success: false, message: "Campground not found" });
+    }
+    const updateFavourites = await removeFromFavouritesQuery(connection, { userId, campgroundId });
+    return res.status(200).json({ success: true, data: { updateFavourites } });
+  } catch (err) {
+    if (err?.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ success: false, message: "Already in Favourites" });
+    }
+    console.log(err);
+    return res.status(500).json({ success: false, message: err?.message || "Internal Server Error" });
   } finally {
     connection.release();
   }

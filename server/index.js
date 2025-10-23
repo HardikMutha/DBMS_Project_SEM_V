@@ -7,6 +7,7 @@ import cors from "cors";
 import campgroundRouter from "./routes/campground.js";
 import requestRouter from "./routes/request.js";
 import reviewRouter from "./routes/review.js";
+import bookingRouter from "./routes/booking.js";
 
 const app = express();
 app.use(cors());
@@ -19,6 +20,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/campground", campgroundRouter);
 app.use("/api/requests", requestRouter);
 app.use("/api/review", reviewRouter);
+app.use("/api/booking", bookingRouter);
 
 app.get("/api", (req, res) => res.send("API is running..."));
 

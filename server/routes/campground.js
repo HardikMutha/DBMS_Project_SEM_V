@@ -1,6 +1,11 @@
 import express from "express";
 import { authenticateUser } from "../middleware/authenticateUser.js";
-import { createCampground, getCampgroundById } from "../controllers/campgroundController.js";
+import {
+  addCampgroundToFavourite,
+  createCampground,
+  getCampgroundById,
+  removeCampgroundFromFavourites,
+} from "../controllers/campgroundController.js";
 import { upload } from "../config/s3config.js";
 
 const router = express.Router();
@@ -27,6 +32,8 @@ router.post(
   createCampground,
 );
 router.get("/get-campground/:id", getCampgroundById);
+router.post("/favourites/add", authenticateUser, addCampgroundToFavourite);
+router.delete("/favourites/delete", authenticateUser, removeCampgroundFromFavourites);
 
 router.post("/upload", upload.array("images", 10), (req, res) => {
   console.log(req.files);

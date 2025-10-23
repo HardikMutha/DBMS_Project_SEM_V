@@ -1,9 +1,10 @@
-import AuthPage from "./components/AuthPage";
+import useAuthContext from "./hooks/useAuthContext.jsx";
 
 function App() {
+  const { state, dispatch } = useAuthContext();
   return (
     <>
-      <AuthPage />
+      <h1 className="bg-red-500">Hello World</h1>
     </>
   );
 }

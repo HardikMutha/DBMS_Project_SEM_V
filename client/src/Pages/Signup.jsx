@@ -1,49 +1,30 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 import { BACKEND_URL } from "../../config";
+import toast from "react-hot-toast";
 
 const Signup = () => {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    phone: "",
-  });
-  const [role, setRole] = useState("user"); // user or admin
-  const [adminSecretKey, setAdminSecretKey] = useState(""); // For admin signup
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { state, dispatch } = useAuthContext();
+  const { dispatch } = useAuthContext();
   const navigate = useNavigate();
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (state.isAuthenticated) {
-      navigate("/home");
-    }
-  }, [state.isAuthenticated, navigate]);
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
+    if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (password.length < 6) {
       setError("Password must be at least 6 characters long");
       return;
     }
@@ -51,49 +32,34 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      const endpoint = role === "admin" ? "/auth/admin-signup" : "/auth/signup";
-
-      // Prepare request body
-      const requestBody = {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        phone: formData.phone,
-      };
-
-      // Add admin secret key if signing up as admin
-      if (role === "admin") {
-        requestBody.adminSecretKey = adminSecretKey;
-      }
-
-      const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+      const response = await fetch(`${BACKEND_URL}/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ username, email, password }),
       });
+
+      if (!response.ok) {
+        const failData = await response.json();
+        toast.error(failData?.message || "An Error Occured Please Try again Later!");
+        return;
+      }
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Signup failed");
-      }
+      localStorage.setItem("token", data?.token);
 
-      // Store token in localStorage
-      localStorage.setItem("token", data.token);
-
-      // Update auth context
       dispatch({
         type: "LOGIN",
         payload: {
-          token: data.token,
-          user: data.user,
+          token: data?.token,
+          user: data?.data,
+          role: data?.data?.role,
         },
       });
 
-      // Navigate to home page
-      navigate("/home");
+      navigate("/user/dashboard");
     } catch (err) {
       setError(err.message || "An error occurred during signup");
     } finally {
@@ -107,34 +73,6 @@ const Signup = () => {
         <h2 className="text-center text-gray-800 text-3xl font-semibold mb-8">Sign Up</h2>
 
         <form onSubmit={handleSubmit}>
-          {/* Role Selection */}
-          <div className="mb-5">
-            <label className="block mb-2 text-gray-700 font-medium text-sm">Sign up as:</label>
-            <div className="flex gap-5 mt-3">
-              <label className="flex items-center gap-2 cursor-pointer px-5 py-3 border-2 border-gray-200 rounded-lg transition-all hover:border-indigo-500 hover:bg-indigo-50 font-medium flex-1 justify-center">
-                <input
-                  type="radio"
-                  value="user"
-                  checked={role === "user"}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-4 h-4 accent-indigo-500 cursor-pointer"
-                />
-                <span className={role === "user" ? "text-indigo-600" : ""}>User</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer px-5 py-3 border-2 border-gray-200 rounded-lg transition-all hover:border-indigo-500 hover:bg-indigo-50 font-medium flex-1 justify-center">
-                <input
-                  type="radio"
-                  value="admin"
-                  checked={role === "admin"}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-4 h-4 accent-indigo-500 cursor-pointer"
-                />
-                <span className={role === "admin" ? "text-indigo-600" : ""}>Admin</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Username Input */}
           <div className="mb-5">
             <label htmlFor="username" className="block mb-2 text-gray-700 font-medium text-sm">
               Username
@@ -142,16 +80,14 @@ const Signup = () => {
             <input
               type="text"
               id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
               placeholder="Enter your username"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
             />
           </div>
 
-          {/* Email Input */}
           <div className="mb-5">
             <label htmlFor="email" className="block mb-2 text-gray-700 font-medium text-sm">
               Email
@@ -159,33 +95,14 @@ const Signup = () => {
             <input
               type="email"
               id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="Enter your email"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
             />
           </div>
 
-          {/* Phone Input */}
-          <div className="mb-5">
-            <label htmlFor="phone" className="block mb-2 text-gray-700 font-medium text-sm">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-              placeholder="Enter your phone number"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-            />
-          </div>
-
-          {/* Password Input */}
           <div className="mb-5">
             <label htmlFor="password" className="block mb-2 text-gray-700 font-medium text-sm">
               Password
@@ -193,16 +110,14 @@ const Signup = () => {
             <input
               type="password"
               id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Enter your password"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
             />
           </div>
 
-          {/* Confirm Password Input */}
           <div className="mb-5">
             <label htmlFor="confirmPassword" className="block mb-2 text-gray-700 font-medium text-sm">
               Confirm Password
@@ -210,39 +125,17 @@ const Signup = () => {
             <input
               type="password"
               id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
               placeholder="Confirm your password"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
             />
           </div>
 
-          {/* Admin Secret Key (only shown for admin signup) */}
-          {role === "admin" && (
-            <div className="mb-5">
-              <label htmlFor="adminSecretKey" className="block mb-2 text-gray-700 font-medium text-sm">
-                Admin Secret Key
-              </label>
-              <input
-                type="password"
-                id="adminSecretKey"
-                value={adminSecretKey}
-                onChange={(e) => setAdminSecretKey(e.target.value)}
-                required
-                placeholder="Enter admin secret key"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-              />
-            </div>
-          )}
-
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm border-l-4 border-red-600">{error}</div>
           )}
-
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}

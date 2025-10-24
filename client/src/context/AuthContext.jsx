@@ -5,6 +5,7 @@ export const AuthContext = createContext({});
 
 const initialState = {
   user: null,
+  role: null,
   token: "",
   isAuthenticated: false,
   isLoading: false,
@@ -15,8 +16,9 @@ const authReducer = (state, action) => {
     case "LOGIN":
       return {
         ...state,
-        user: action?.payload.user,
-        token: action?.payload.token,
+        user: action?.payload?.user,
+        token: action?.payload?.token,
+        role: action?.payload?.user?.role,
         isAuthenticated: true,
         isLoading: false,
       };
@@ -25,6 +27,7 @@ const authReducer = (state, action) => {
         ...state,
         user: null,
         token: "",
+        role: null,
         isAuthenticated: false,
         isLoading: false,
       };

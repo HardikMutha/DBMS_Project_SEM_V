@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 import { BACKEND_URL } from "../../config";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,15 +11,8 @@ const Login = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { state, dispatch } = useAuthContext();
+  const { dispatch } = useAuthContext();
   const navigate = useNavigate();
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (state.isAuthenticated) {
-      navigate("/home");
-    }
-  }, [state.isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,26 +29,26 @@ const Login = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        const failData = await response.json();
+        toast.error(failData?.message + " Please try again !");
+        return;
       }
 
-      // Store token in localStorage
-      localStorage.setItem("token", data.token);
+      const data = await response.json();
 
-      // Update auth context
+      localStorage.setItem("token", data?.token);
+
       dispatch({
         type: "LOGIN",
         payload: {
-          token: data.token,
-          user: data.user,
+          token: data?.token,
+          user: data?.data,
+          role: data?.data?.role,
         },
       });
 
-      // Navigate to home page
-      navigate("/home");
+      navigate(`/${role}/dashboard`);
     } catch (err) {
       setError(err.message || "An error occurred during login");
     } finally {
@@ -68,7 +62,6 @@ const Login = () => {
         <h2 className="text-center text-gray-800 text-3xl font-semibold mb-8">Login</h2>
 
         <form onSubmit={handleSubmit}>
-          {/* Role Selection */}
           <div className="mb-5">
             <label className="block mb-2 text-gray-700 font-medium text-sm">Login as:</label>
             <div className="flex gap-5 mt-3">
@@ -95,7 +88,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Email Input */}
           <div className="mb-5">
             <label htmlFor="email" className="block mb-2 text-gray-700 font-medium text-sm">
               Email
@@ -111,7 +103,6 @@ const Login = () => {
             />
           </div>
 
-          {/* Password Input */}
           <div className="mb-5">
             <label htmlFor="password" className="block mb-2 text-gray-700 font-medium text-sm">
               Password
@@ -127,12 +118,10 @@ const Login = () => {
             />
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm border-l-4 border-red-600">{error}</div>
           )}
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}

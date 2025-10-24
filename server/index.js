@@ -10,7 +10,7 @@ import reviewRouter from "./routes/review.js";
 import bookingRouter from "./routes/booking.js";
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());

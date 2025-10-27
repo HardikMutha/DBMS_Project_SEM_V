@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 import { BACKEND_URL } from "../../config";
 import toast from "react-hot-toast";
+import campingBg from "/assets/camping-bg.jpg";
 
 const Signup = () => {
   const [username, setUsername] = useState("");
@@ -59,7 +60,7 @@ const Signup = () => {
         },
       });
 
-      navigate("/user/dashboard");
+      navigate("/");
     } catch (err) {
       setError(err.message || "An error occurred during signup");
     } finally {
@@ -68,13 +69,18 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-5">
-      <div className="bg-white rounded-xl shadow-2xl p-10 w-full max-w-md">
-        <h2 className="text-center text-gray-800 text-3xl font-semibold mb-8">Sign Up</h2>
+    <div 
+      className="min-h-screen flex justify-center items-center p-5"
+      style={{
+        background: `url('${campingBg}') center/cover no-repeat`
+      }}
+    >
+      <div className="relative z-10 bg-transparent border-2 border-white border-opacity-50 rounded-xl shadow-2xl p-10 w-full max-w-md">
+        <h2 className="text-center text-white text-3xl font-semibold mb-8">Sign Up</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-5">
-            <label htmlFor="username" className="block mb-2 text-gray-700 font-medium text-sm">
+            <label htmlFor="username" className="block mb-2 text-white font-medium text-sm">
               Username
             </label>
             <input
@@ -84,12 +90,12 @@ const Signup = () => {
               onChange={(e) => setUsername(e.target.value)}
               required
               placeholder="Enter your username"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              className="w-full px-4 py-3 bg-transparent border-2 border-white border-opacity-50 rounded-lg text-white placeholder-white placeholder-opacity-90 text-sm transition-all focus:outline-none focus:border-opacity-70"
             />
           </div>
 
           <div className="mb-5">
-            <label htmlFor="email" className="block mb-2 text-gray-700 font-medium text-sm">
+            <label htmlFor="email" className="block mb-2 text-white font-medium text-sm">
               Email
             </label>
             <input
@@ -99,12 +105,12 @@ const Signup = () => {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="Enter your email"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              className="w-full px-4 py-3 bg-transparent border-2 border-white border-opacity-50 rounded-lg text-white placeholder-white placeholder-opacity-90 text-sm transition-all focus:outline-none focus:border-opacity-70"
             />
           </div>
 
           <div className="mb-5">
-            <label htmlFor="password" className="block mb-2 text-gray-700 font-medium text-sm">
+            <label htmlFor="password" className="block mb-2 text-white font-medium text-sm">
               Password
             </label>
             <input
@@ -114,12 +120,12 @@ const Signup = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Enter your password"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              className="w-full px-4 py-3 bg-transparent border-2 border-white border-opacity-50 rounded-lg text-white placeholder-white placeholder-opacity-90 text-sm transition-all focus:outline-none focus:border-opacity-70"
             />
           </div>
 
           <div className="mb-5">
-            <label htmlFor="confirmPassword" className="block mb-2 text-gray-700 font-medium text-sm">
+            <label htmlFor="confirmPassword" className="block mb-2 text-white font-medium text-sm">
               Confirm Password
             </label>
             <input
@@ -129,26 +135,26 @@ const Signup = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               placeholder="Confirm your password"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              className="w-full px-4 py-3 bg-transparent border-2 border-white border-opacity-50 rounded-lg text-white placeholder-white placeholder-opacity-90 text-sm transition-all focus:outline-none focus:border-opacity-70"
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm border-l-4 border-red-600">{error}</div>
+            <div className="bg-red-500 bg-opacity-80 text-white px-4 py-3 rounded-lg mb-4 text-sm border border-red-300">{error}</div>
           )}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg text-base font-semibold cursor-pointer transition-all mt-3 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            className="w-full py-3.5 bg-transparent border-2 border-white border-opacity-50 text-white rounded-lg text-base font-semibold cursor-pointer transition-all mt-3 hover:border-opacity-70 hover:bg-white hover:bg-opacity-10 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isLoading ? "Creating account..." : "Sign Up"}
           </button>
         </form>
 
-        <div className="text-center mt-6 pt-5 border-t border-gray-200">
-          <p className="text-gray-600 text-sm">
+        <div className="text-center mt-6 pt-5 border-t border-white border-opacity-50">
+          <p className="text-white text-sm">
             Already have an account?{" "}
-            <Link to="/login" className="text-indigo-600 font-semibold hover:text-purple-600 hover:underline transition-colors">
+            <Link to="/login" className="text-white font-semibold hover:text-cyan-300 hover:underline transition-colors">
               Login here
             </Link>
           </p>

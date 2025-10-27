@@ -3,6 +3,9 @@ import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
 import AdminDashboard from "./Pages/AdminDashboard";
 import UserDashboard from "./Pages/UserDashboard";
+import Home from "./Pages/Home";
+import Profile from "./Pages/Profile";
+import CreateCG from "./pages/CreateCG";
 import useAuthContext from "./hooks/useAuthContext";
 import { Toaster } from "react-hot-toast";
 
@@ -13,9 +16,13 @@ function App() {
       <Toaster />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/profile"
+            element={state?.isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
+          />
           <Route
             path="/admin/dashboard"
             element={state?.isAuthenticated && state?.role === "admin" ? <AdminDashboard /> : <Login />}
@@ -23,6 +30,10 @@ function App() {
           <Route
             path="/user/dashboard"
             element={state?.isAuthenticated && state?.role === "user" ? <UserDashboard /> : <Login />}
+          />
+          <Route
+            path="/user/createcg"
+            element={state?.isAuthenticated && state?.role === "user" ? <CreateCG /> : <Login />}
           />
         </Routes>
       </BrowserRouter>

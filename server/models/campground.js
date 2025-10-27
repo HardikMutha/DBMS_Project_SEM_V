@@ -38,3 +38,15 @@ export const getOwnerInfoQuery = async function (connection, { campgroundId }) {
   );
   return rows[0];
 };
+
+export const getAllApprovedCampgroundsQuery = async function (connection) {
+  const [rows] = await connection.query(
+    `SELECT c.*, l.place, l.latitude, l.longitude, 
+     (SELECT imgUrl FROM Images WHERE campgroundId = c.id LIMIT 1) as imageUrl
+     FROM Campground c 
+     LEFT JOIN Location l ON c.locId = l.id 
+     WHERE c.isApproved = true 
+     ORDER BY c.id DESC`,
+  );
+  return rows;
+};

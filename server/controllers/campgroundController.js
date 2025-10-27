@@ -18,12 +18,14 @@ export const createCampground = async (req, res) => {
     return res.status(500).json({ success: false, message: "DB Connection Error" });
   }
   const { title, description, capacity, type, latitude, longitude, place, price } = req?.body;
+  const updateLongitude = parseFloat(longitude);
+  const updateLatitude = parseFloat(latitude);
   if (!req.files || !req?.files.length) {
     return res.status(400).json({ success: false, message: "Images not provided" });
   }
   try {
     await connection.beginTransaction();
-    const newLocation = await createLocationQuery(connection, { place, longitude, latitude });
+    const newLocation = await createLocationQuery(connection, { place, longitude: updateLongitude, latitude: updateLatitude });
     const newCampground = await createCampgroundQuery(connection, {
       title,
       description,

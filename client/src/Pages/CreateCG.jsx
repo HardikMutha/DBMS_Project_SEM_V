@@ -10,7 +10,6 @@ const CreateCG = () => {
   const [description, setDescription] = useState("");
   const [capacity, setCapacity] = useState(1);
   const [type, setType] = useState("");
-  const [locId, setLocId] = useState("");
   const [price, setPrice] = useState(0.0);
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -21,21 +20,13 @@ const CreateCG = () => {
   const [coordinates, setCoordinates] = useState(null);
   const [address, setAddress] = useState("");
   const [mapLoaded, setMapLoaded] = useState(false);
-  
+
   const fileInputRef = useRef(null);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
-  const campgroundTypes = [
-    "Tent Camping",
-    "RV Camping",
-    "Cabin",
-    "Glamping",
-    "Backcountry",
-    "Group Site",
-    "Other"
-  ];
+  const campgroundTypes = ["Tent Camping", "RV Camping", "Cabin", "Glamping", "Backcountry", "Group Site", "Other"];
 
   useEffect(() => {
     if (showMapModal && !mapLoaded) {
@@ -69,23 +60,21 @@ const CreateCG = () => {
 
     const map = window.L.map(mapRef.current).setView([20.5937, 78.9629], 5);
     window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: "&copy; OpenStreetMap contributors",
     }).addTo(map);
 
     map.on("click", async (e) => {
       const { lat, lng } = e.latlng;
-      
+
       if (markerRef.current) {
         map.removeLayer(markerRef.current);
       }
-      
+
       markerRef.current = window.L.marker([lat, lng]).addTo(map);
       setCoordinates({ lat, lng });
-      
+
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-        );
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
         const data = await response.json();
         setAddress(data.display_name || "Address not found");
       } catch (err) {
@@ -99,12 +88,12 @@ const CreateCG = () => {
 
   const handleFiles = (files) => {
     const fileArray = Array.from(files);
-    setImages(prev => [...prev, ...fileArray]);
-    
-    fileArray.forEach(file => {
+    setImages((prev) => [...prev, ...fileArray]);
+
+    fileArray.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result]);
+        setImagePreviews((prev) => [...prev, reader.result]);
       };
       reader.readAsDataURL(file);
     });
@@ -132,8 +121,8 @@ const CreateCG = () => {
   };
 
   const removeImage = (index) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const confirmLocation = () => {
@@ -154,12 +143,19 @@ const CreateCG = () => {
     formData.append("description", description);
     formData.append("capacity", capacity);
     formData.append("type", type);
-    if (locId) formData.append("locId", locId);
     formData.append("price", price);
+    formData.append("latitude", coordinates?.lat);
+    formData.append("longitude", coordinates?.lng);
+    formData.append("place", address.split(",")[0] + "," + address.split(",")[1]);
     images.forEach((file) => formData.append("images", file));
 
     try {
       setLoading(true);
+
+      for (const elem of formData.entries()) {
+        console.log(elem);
+      }
+
       const res = await fetch(`${BACKEND_URL}/campground/create-campground`, {
         method: "POST",
         headers: {
@@ -176,7 +172,6 @@ const CreateCG = () => {
         setDescription("");
         setCapacity(1);
         setType("");
-        setLocId("");
         setPrice(0.0);
         setImages([]);
         setImagePreviews([]);
@@ -193,33 +188,39 @@ const CreateCG = () => {
   };
 
   return (
-    <div style={{ 
-      maxWidth: 800, 
-      margin: "40px auto", 
-      padding: "32px",
-      backgroundColor: "#ffffff",
-      borderRadius: "12px",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-      border: "1px solid #e0e0e0"
-    }}>
-      <h2 style={{ 
-        marginTop: 0, 
-        marginBottom: 32, 
-        fontSize: 28, 
-        fontWeight: 600,
-        color: "#1a1a1a"
-      }}>
+    <div
+      style={{
+        maxWidth: 800,
+        margin: "40px auto",
+        padding: "32px",
+        backgroundColor: "#ffffff",
+        borderRadius: "12px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        border: "1px solid #e0e0e0",
+      }}
+    >
+      <h2
+        style={{
+          marginTop: 0,
+          marginBottom: 32,
+          fontSize: 28,
+          fontWeight: 600,
+          color: "#1a1a1a",
+        }}
+      >
         Create New Campground
       </h2>
-      
+
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 24 }}>
-          <label style={{ 
-            display: "block", 
-            marginBottom: 8, 
-            fontWeight: 500,
-            color: "#333"
-          }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: 8,
+              fontWeight: 500,
+              color: "#333",
+            }}
+          >
             Title <span style={{ color: "#dc2626" }}>*</span>
           </label>
           <input
@@ -228,28 +229,30 @@ const CreateCG = () => {
             onChange={(e) => setTitle(e.target.value)}
             required
             placeholder="Enter campground title"
-            style={{ 
-              width: "100%", 
+            style={{
+              width: "100%",
               padding: "12px 16px",
               border: "1px solid #d1d5db",
               borderRadius: "8px",
               fontSize: 15,
               transition: "border-color 0.2s",
               outline: "none",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
             }}
-            onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
-            onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
+            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
           />
         </div>
 
         <div style={{ marginBottom: 24 }}>
-          <label style={{ 
-            display: "block", 
-            marginBottom: 8, 
-            fontWeight: 500,
-            color: "#333"
-          }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: 8,
+              fontWeight: 500,
+              color: "#333",
+            }}
+          >
             Description
           </label>
           <textarea
@@ -257,8 +260,8 @@ const CreateCG = () => {
             onChange={(e) => setDescription(e.target.value)}
             rows={5}
             placeholder="Describe your campground..."
-            style={{ 
-              width: "100%", 
+            style={{
+              width: "100%",
               padding: "12px 16px",
               border: "1px solid #d1d5db",
               borderRadius: "8px",
@@ -267,21 +270,23 @@ const CreateCG = () => {
               resize: "vertical",
               transition: "border-color 0.2s",
               outline: "none",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
             }}
-            onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
-            onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
+            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
           />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
           <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: 8, 
-              fontWeight: 500,
-              color: "#333"
-            }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 8,
+                fontWeight: 500,
+                color: "#333",
+              }}
+            >
               Capacity <span style={{ color: "#dc2626" }}>*</span>
             </label>
             <input
@@ -290,34 +295,36 @@ const CreateCG = () => {
               value={capacity}
               onChange={(e) => setCapacity(e.target.value)}
               required
-              style={{ 
-                width: "100%", 
+              style={{
+                width: "100%",
                 padding: "12px 16px",
                 border: "1px solid #d1d5db",
                 borderRadius: "8px",
                 fontSize: 15,
                 outline: "none",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
               }}
-              onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
-              onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
+              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
             />
           </div>
 
           <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: 8, 
-              fontWeight: 500,
-              color: "#333"
-            }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 8,
+                fontWeight: 500,
+                color: "#333",
+              }}
+            >
               Type
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              style={{ 
-                width: "100%", 
+              style={{
+                width: "100%",
                 padding: "12px 16px",
                 border: "1px solid #d1d5db",
                 borderRadius: "8px",
@@ -325,14 +332,16 @@ const CreateCG = () => {
                 backgroundColor: "white",
                 outline: "none",
                 boxSizing: "border-box",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
-              onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
-              onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
+              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
             >
               <option value="">Select type</option>
-              {campgroundTypes.map(t => (
-                <option key={t} value={t}>{t}</option>
+              {campgroundTypes.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </div>
@@ -368,12 +377,14 @@ const CreateCG = () => {
           </div> */}
 
           <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: 8, 
-              fontWeight: 500,
-              color: "#333"
-            }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 8,
+                fontWeight: 500,
+                color: "#333",
+              }}
+            >
               Price <span style={{ color: "#dc2626" }}>*</span>
             </label>
             <input
@@ -384,28 +395,30 @@ const CreateCG = () => {
               onChange={(e) => setPrice(e.target.value)}
               required
               placeholder="0.00"
-              style={{ 
-                width: "100%", 
+              style={{
+                width: "100%",
                 padding: "12px 16px",
                 border: "1px solid #d1d5db",
                 borderRadius: "8px",
                 fontSize: 15,
                 outline: "none",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
               }}
-              onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
-              onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
+              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
             />
           </div>
         </div>
 
         <div style={{ marginBottom: 24 }}>
-          <label style={{ 
-            display: "block", 
-            marginBottom: 8, 
-            fontWeight: 500,
-            color: "#333"
-          }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: 8,
+              fontWeight: 500,
+              color: "#333",
+            }}
+          >
             Location
           </label>
           <button
@@ -420,7 +433,7 @@ const CreateCG = () => {
               fontSize: 15,
               fontWeight: 500,
               color: "#374151",
-              transition: "all 0.2s"
+              transition: "all 0.2s",
             }}
             onMouseEnter={(e) => {
               e.target.style.backgroundColor = "#e5e7eb";
@@ -434,15 +447,17 @@ const CreateCG = () => {
             Select Location on Map
           </button>
           {address && (
-            <div style={{
-              marginTop: 12,
-              padding: "12px 16px",
-              backgroundColor: "#f0f9ff",
-              border: "1px solid #bae6fd",
-              borderRadius: "8px",
-              fontSize: 14,
-              color: "#0c4a6e"
-            }}>
+            <div
+              style={{
+                marginTop: 12,
+                padding: "12px 16px",
+                backgroundColor: "#f0f9ff",
+                border: "1px solid #bae6fd",
+                borderRadius: "8px",
+                fontSize: 14,
+                color: "#0c4a6e",
+              }}
+            >
               <strong>Selected Location:</strong>
               <div style={{ marginTop: 4 }}>{address}</div>
               {coordinates && (
@@ -455,12 +470,14 @@ const CreateCG = () => {
         </div>
 
         <div style={{ marginBottom: 24 }}>
-          <label style={{ 
-            display: "block", 
-            marginBottom: 8, 
-            fontWeight: 500,
-            color: "#333"
-          }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: 8,
+              fontWeight: 500,
+              color: "#333",
+            }}
+          >
             Images
           </label>
           <div
@@ -475,7 +492,7 @@ const CreateCG = () => {
               textAlign: "center",
               cursor: "pointer",
               backgroundColor: isDragging ? "#eff6ff" : "#f9fafb",
-              transition: "all 0.2s"
+              transition: "all 0.2s",
             }}
           >
             <input
@@ -487,20 +504,20 @@ const CreateCG = () => {
               style={{ display: "none" }}
             />
             <div style={{ color: "#6b7280", fontSize: 15 }}>
-              <div style={{ marginBottom: 8, fontSize: 16, fontWeight: 500, color: "#374151" }}>
-                Drag and drop images here
-              </div>
+              <div style={{ marginBottom: 8, fontSize: 16, fontWeight: 500, color: "#374151" }}>Drag and drop images here</div>
               <div>or click to browse</div>
             </div>
           </div>
 
           {imagePreviews.length > 0 && (
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-              gap: 12,
-              marginTop: 16
-            }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                gap: 12,
+                marginTop: 16,
+              }}
+            >
               {imagePreviews.map((preview, idx) => (
                 <div key={idx} style={{ position: "relative" }}>
                   <img
@@ -511,7 +528,7 @@ const CreateCG = () => {
                       height: 140,
                       objectFit: "cover",
                       borderRadius: "8px",
-                      border: "1px solid #e5e7eb"
+                      border: "1px solid #e5e7eb",
                     }}
                   />
                   <button
@@ -532,7 +549,7 @@ const CreateCG = () => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      padding: 0
+                      padding: 0,
                     }}
                   >
                     ×
@@ -543,10 +560,10 @@ const CreateCG = () => {
           )}
         </div>
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
-          style={{ 
+          style={{
             width: "100%",
             padding: "14px 24px",
             backgroundColor: loading ? "#9ca3af" : "#3b82f6",
@@ -556,7 +573,7 @@ const CreateCG = () => {
             fontSize: 16,
             fontWeight: 600,
             cursor: loading ? "not-allowed" : "pointer",
-            transition: "background-color 0.2s"
+            transition: "background-color 0.2s",
           }}
           onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = "#2563eb")}
           onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = "#3b82f6")}
@@ -566,51 +583,57 @@ const CreateCG = () => {
       </form>
 
       {message && (
-        <div style={{ 
-          marginTop: 20, 
-          padding: "12px 16px",
-          borderRadius: "8px",
-          backgroundColor: message.type === "error" ? "#fef2f2" : "#f0fdf4",
-          border: `1px solid ${message.type === "error" ? "#fecaca" : "#bbf7d0"}`,
-          color: message.type === "error" ? "#991b1b" : "#166534",
-          fontSize: 15
-        }}>
+        <div
+          style={{
+            marginTop: 20,
+            padding: "12px 16px",
+            borderRadius: "8px",
+            backgroundColor: message.type === "error" ? "#fef2f2" : "#f0fdf4",
+            border: `1px solid ${message.type === "error" ? "#fecaca" : "#bbf7d0"}`,
+            color: message.type === "error" ? "#991b1b" : "#166534",
+            fontSize: 15,
+          }}
+        >
           {message.text}
         </div>
       )}
 
       {showMapModal && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: "white",
-            borderRadius: "12px",
-            width: "90%",
-            maxWidth: 900,
-            maxHeight: "90vh",
-            overflow: "hidden",
-            boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
-          }}>
-            <div style={{
-              padding: "20px 24px",
-              borderBottom: "1px solid #e5e7eb",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}>
-              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
-                Select Location
-              </h3>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "12px",
+              width: "90%",
+              maxWidth: 900,
+              maxHeight: "90vh",
+              overflow: "hidden",
+              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+            }}
+          >
+            <div
+              style={{
+                padding: "20px 24px",
+                borderBottom: "1px solid #e5e7eb",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Select Location</h3>
               <button
                 onClick={() => setShowMapModal(false)}
                 style={{
@@ -624,29 +647,29 @@ const CreateCG = () => {
                   height: 32,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center"
+                  justifyContent: "center",
                 }}
               >
                 ×
               </button>
             </div>
-            <div style={{ padding: 16, fontSize: 14, color: "#6b7280" }}>
-              Click on the map to select a location
-            </div>
-            <div 
+            <div style={{ padding: 16, fontSize: 14, color: "#6b7280" }}>Click on the map to select a location</div>
+            <div
               ref={mapRef}
-              style={{ 
+              style={{
                 height: 500,
-                width: "100%"
+                width: "100%",
               }}
             />
-            <div style={{
-              padding: "16px 24px",
-              borderTop: "1px solid #e5e7eb",
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 12
-            }}>
+            <div
+              style={{
+                padding: "16px 24px",
+                borderTop: "1px solid #e5e7eb",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 12,
+              }}
+            >
               <button
                 onClick={() => setShowMapModal(false)}
                 style={{
@@ -657,7 +680,7 @@ const CreateCG = () => {
                   cursor: "pointer",
                   fontSize: 15,
                   fontWeight: 500,
-                  color: "#374151"
+                  color: "#374151",
                 }}
               >
                 Cancel
@@ -673,7 +696,7 @@ const CreateCG = () => {
                   borderRadius: "8px",
                   cursor: coordinates ? "pointer" : "not-allowed",
                   fontSize: 15,
-                  fontWeight: 500
+                  fontWeight: 500,
                 }}
               >
                 Confirm Location

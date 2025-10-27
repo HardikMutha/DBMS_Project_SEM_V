@@ -4,6 +4,7 @@ import {
   getCampgroundByIdQuery,
   getOwnerInfoQuery,
   removeFromFavouritesQuery,
+  getAllApprovedCampgroundsQuery,
 } from "../models/campground.js";
 import { getCampgroundReviews } from "../models/review.js";
 import { createLocationQuery } from "../models/location.js";
@@ -128,6 +129,22 @@ export const removeCampgroundFromFavourites = async (req, res) => {
     }
     console.log(err);
     return res.status(500).json({ success: false, message: err?.message || "Internal Server Error" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const getAllCampgrounds = async (req, res) => {
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "DB Connection Error" });
+  }
+  try {
+    const campgrounds = await getAllApprovedCampgroundsQuery(connection);
+    return res.status(200).json({ success: true, data: campgrounds });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });
   } finally {
     connection.release();
   }

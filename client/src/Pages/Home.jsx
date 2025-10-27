@@ -33,9 +33,9 @@ const Home = () => {
         <div className="w-full px-6 py-4">
           <div className="flex justify-between items-center">
             <Link to="/" className="flex items-center">
-              <img 
-                src="/assets/cg-logo.png" 
-                alt="CampGrounds Logo" 
+              <img
+                src="/assets/cg-logo.png"
+                alt="CampGrounds Logo"
                 className="h-12 w-auto"
               />
             </Link>
@@ -44,13 +44,29 @@ const Home = () => {
               <Link to="/" className="text-white hover:text-cyan-300 transition-colors">
                 Home
               </Link>
-              
+
               <button className="relative text-white hover:text-cyan-300 transition-colors">
                 Notifications
                 {state?.isAuthenticated && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 )}
               </button>
+
+              {state?.isAuthenticated ? (
+                <Link
+                  to="/user/createcg"
+                  className="text-white hover:text-cyan-300 transition-colors"
+                >
+                  Create Campground
+                </Link>
+              ) : (
+                <Link
+                  to="/login"
+                  className="text-white hover:text-cyan-300 transition-colors hidden"
+                >
+                  Sign In
+                </Link>
+              )}
 
               {state?.isAuthenticated ? (
                 <Link
@@ -72,7 +88,7 @@ const Home = () => {
         </div>
       </nav>
 
-      <div 
+      <div
         className="flex-1 relative flex items-center justify-center px-6 min-h-screen"
         style={{
           background: `url('${campingBg}') center/cover no-repeat`,
@@ -81,7 +97,7 @@ const Home = () => {
         }}
       >
         <div className="absolute inset-0 bg-opacity-30"></div>
-        
+
         <div className="relative z-10 w-full max-w-3xl">
           <form onSubmit={handleSearch}>
             <div className="relative">
@@ -114,10 +130,9 @@ const Home = () => {
       </div>
 
       {/* Browse Campgrounds Overlay */}
-      <div 
-        className={`fixed inset-0 z-50 transition-all duration-500 ease-in-out ${
-          showBrowse ? 'opacity-100 visible' : 'opacity-0 invisible'
-        }`}
+      <div
+        className={`fixed inset-0 z-50 transition-all duration-500 ease-in-out ${showBrowse ? 'opacity-100 visible' : 'opacity-0 invisible'
+          }`}
         style={{
           transform: showBrowse ? 'translateY(0)' : 'translateY(100%)',
         }}

@@ -5,6 +5,7 @@ import AdminDashboard from "./Pages/AdminDashboard";
 import UserDashboard from "./Pages/UserDashboard";
 import Home from "./Pages/Home";
 import Profile from "./Pages/Profile";
+import CreateCG from "./pages/CreateCG";
 import useAuthContext from "./hooks/useAuthContext";
 import { Toaster } from "react-hot-toast";
 
@@ -29,6 +30,10 @@ function App() {
           <Route
             path="/user/dashboard"
             element={state?.isAuthenticated && state?.role === "user" ? <UserDashboard /> : <Login />}
+          />
+          <Route
+            path="/user/createcg"
+            element={state?.isAuthenticated && state?.role === "user" ? <CreateCG /> : <Login />}
           />
         </Routes>
       </BrowserRouter>

@@ -8,6 +8,7 @@ import campgroundRouter from "./routes/campground.js";
 import requestRouter from "./routes/request.js";
 import reviewRouter from "./routes/review.js";
 import bookingRouter from "./routes/booking.js";
+import adminRouter from "./routes/admin.js";
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -21,6 +22,7 @@ app.use("/api/campground", campgroundRouter);
 app.use("/api/requests", requestRouter);
 app.use("/api/review", reviewRouter);
 app.use("/api/booking", bookingRouter);
+app.use("/api/admin", adminRouter);
 
 app.get("/api", (req, res) => res.send("API is running..."));
 

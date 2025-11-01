@@ -20,7 +20,22 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/profile" element={state?.isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
+          <Route
+            path="/profile"
+            element={
+              state?.isAuthenticated ? (
+                state?.role === "user" ? (
+                  <Profile />
+                ) : state?.role === "admin" ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
           <Route
             path="/admin/dashboard"
             element={state?.isAuthenticated && state?.role === "admin" ? <AdminDashboard /> : <Login />}

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
+import Navbar from "../components/Navbar";
 
 const Profile = () => {
   const { state, dispatch } = useAuthContext();
@@ -20,35 +21,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-[#164E63] shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <Link to="/" className="flex items-center">
-              <img 
-                src="/assets/cg-logo.png" 
-                alt="CampGrounds Logo" 
-                className="h-12 w-auto"
-              />
-            </Link>
-
-            <div className="flex items-center gap-8" style={{ fontFamily: 'Cantarell, sans-serif', fontSize: '15.8px' }}>
-              <Link to="/" className="text-white hover:text-cyan-300 transition-colors">
-                Home
-              </Link>
-              <button className="relative text-white hover:text-cyan-300 transition-colors">
-                Notifications
-                {state?.isAuthenticated && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                )}
-              </button>
-              <Link to={`/${state.role}/dashboard`} className="text-cyan-300 font-semibold">
-                Profile
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar variant="solid" />
 
       {/* Profile Content */}
       <div className="max-w-5xl mx-auto px-6 py-10">

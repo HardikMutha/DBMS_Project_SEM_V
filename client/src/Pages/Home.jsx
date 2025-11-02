@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router";
-import useAuthContext from "../hooks/useAuthContext";
+import { useNavigate } from "react-router";
+import Navbar from "../components/Navbar";
 import campingBg from "/assets/camping-bg.jpg";
 
 const Home = () => {
-  const { state } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
@@ -24,92 +23,7 @@ const Home = () => {
 
   return (
     <div className="h-screen flex flex-col relative">
-      <nav className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/60 to-transparent backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <Link to="/" className="flex items-center group">
-              <img
-                src="/assets/cg-logo.png"
-                alt="CampGrounds Logo"
-                className="h-14 w-auto transition-transform group-hover:scale-105"
-              />
-            </Link>
-
-            <div className="flex items-center gap-6" style={{ fontFamily: "Cantarell, sans-serif" }}>
-              <Link
-                to="/"
-                className="text-white font-medium hover:text-cyan-300 transition-all duration-300 relative group px-2 py-1"
-              >
-                Home
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyan-300 group-hover:w-full transition-all duration-300"></span>
-              </Link>
-
-              <button className="relative text-white font-medium hover:text-cyan-300 transition-all duration-300 px-2 py-1 group">
-                <span className="flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                    />
-                  </svg>
-                  Notifications
-                </span>
-                {state?.isAuthenticated && (
-                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
-                )}
-              </button>
-
-              {state?.isAuthenticated ? (
-                <Link
-                  to="/user/createcg"
-                  className="text-white font-medium hover:text-cyan-300 transition-all duration-300 relative group px-2 py-1"
-                >
-                  <span className="flex items-center gap-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Create
-                  </span>
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyan-300 group-hover:w-full transition-all duration-300"></span>
-                </Link>
-              ) : null}
-
-              {state?.isAuthenticated ? (
-                <Link
-                  to="/profile"
-                  className="flex items-center gap-2 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white font-medium px-4 py-2 rounded-full transition-all duration-300 border border-white/20"
-                >
-                  <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-[#164E63] rounded-full flex items-center justify-center text-sm font-bold">
-                    {state?.user?.username?.charAt(0).toUpperCase() || "U"}
-                  </div>
-                  <span>Profile</span>
-                </Link>
-              ) : (
-                <Link
-                  to="/login"
-                  className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white font-semibold px-6 py-2 rounded-full transition-all duration-300 border border-white/20"
-                >
-                  Sign In
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar variant="transparent" />
 
       <div
         className="flex-1 relative flex items-center justify-center px-6"

@@ -11,7 +11,6 @@ const Navbar = ({ variant = "transparent" }) => {
     : "bg-[#164E63] shadow-lg";
   const logoHeightClass = isTransparent ? "h-14" : "h-12";
   const linkGapClass = isTransparent ? "gap-6" : "gap-8";
-  const profileDestination = !isTransparent && state?.role ? `/${state.role}/dashboard` : "/profile";
   const profileInitial = state?.user?.username?.charAt(0).toUpperCase() || "U";
 
   return (
@@ -28,10 +27,10 @@ const Navbar = ({ variant = "transparent" }) => {
 
           <div className={`flex items-center ${linkGapClass}`} style={{ fontFamily: "Cantarell, sans-serif" }}>
             <Link
-              to="/"
+              to={state?.isAuthenticated && state?.role === "user" ? "/" : "/admin/dashboard"}
               className="text-white font-medium hover:text-cyan-300 transition-all duration-300 relative group px-2 py-1"
             >
-              Home
+              {state?.isAuthenticated && state?.role === "user" ? "Home" : "Dashboard"}
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-cyan-300 group-hover:w-full transition-all duration-300"></span>
             </Link>
 
@@ -55,7 +54,7 @@ const Navbar = ({ variant = "transparent" }) => {
               )}
             </button>
 
-            {state?.isAuthenticated ? (
+            {state?.isAuthenticated && state?.role === "user" ? (
               <Link
                 to="/user/createcg"
                 className="text-white font-medium hover:text-cyan-300 transition-all duration-300 relative group px-2 py-1"
@@ -78,7 +77,7 @@ const Navbar = ({ variant = "transparent" }) => {
 
             {state?.isAuthenticated ? (
               <Link
-                to={profileDestination}
+                to={state?.role === "user" ? "/user/dashboard" : "/admin/dashboard"}
                 className={`flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 font-medium text-white transition-all duration-300 ${
                   isTransparent ? "bg-white/10 backdrop-blur-md hover:bg-white/20" : "bg-white/10 hover:bg-white/20"
                 }`}

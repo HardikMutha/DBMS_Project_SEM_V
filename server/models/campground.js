@@ -50,3 +50,23 @@ export const getAllApprovedCampgroundsQuery = async function (connection) {
   );
   return rows;
 };
+
+export const getCampgroundCount = async function (connection) {
+  const [rows] = await connection.query("SELECT COUNT(*) AS campgroundCount FROM Campground WHERE isApproved = 1");
+  return rows[0].campgroundCount;
+};
+
+export const getPendingCampgroundRequests = async function (connection) {
+  const [rows] = await connection.query("SELECT u.username, cg.title FROM Users u JOIN Campground cg ON u.id = cg.ownerId JOIN Request r ON cg.id = r.campgroundId WHERE r.status = 'pending' ORDER BY r.id DESC");
+  return rows;
+};
+
+export const getAllCampgrounds = async function(connection) {
+  const [rows] = await connection.query("SELECT * FROM Campground JOIN Images ON Campground.id = Images.campgroundId ORDER BY Campground.id ASC");
+  return rows;
+};
+
+export const getCampgroundRequestById = async function(connection, campgroundId) {
+  const [rows] = await connection.query(`SELECT * FROM Request WHERE campgroundId = ?`, [campgroundId]);
+  return rows;
+};

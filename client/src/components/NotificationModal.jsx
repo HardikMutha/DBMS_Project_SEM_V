@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 import { BACKEND_URL } from "../../config";
 
@@ -65,27 +66,21 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="relative w-[65vw] h-[80vh] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-cyan-500/20 flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        {/* Close Button - Floating Top Right */}
+      <div
+        className="relative w-[65vw] h-[80vh] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-cyan-500/20 flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 text-cyan-300 hover:text-cyan-200 transition-colors duration-200 p-2 hover:bg-cyan-900/30 rounded-lg bg-gray-900/80 backdrop-blur-sm"
           aria-label="Close"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar - Notification List */}
           <div className="w-2/5 border-r border-cyan-500/20 bg-gray-900/50 overflow-y-auto">
             <div className="p-4 space-y-2">
               {notifications.length === 0 ? (
@@ -120,12 +115,8 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      {/* Unread Indicator */}
-                      {!isViewed(notification) && (
-                        <div className="mt-1.5 w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0"></div>
-                      )}
+                      {!isViewed(notification) && <div className="mt-1.5 w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0"></div>}
                       <div className="flex-1 min-w-0">
-                        {/* From Field */}
                         {notification.from && (
                           <div
                             className={`text-xs font-semibold mb-1 ${
@@ -136,7 +127,6 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
                           </div>
                         )}
 
-                        {/* Content Preview */}
                         <p
                           className={`text-sm leading-relaxed ${
                             isViewed(notification)
@@ -147,11 +137,8 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
                           {truncateText(notification.content)}
                         </p>
 
-                        {/* Timestamp */}
                         {notification.createdAt && (
-                          <p className="text-xs mt-2 text-cyan-700/50">
-                            {formatDate(notification.createdAt)}
-                          </p>
+                          <p className="text-xs mt-2 text-cyan-700/50">{formatDate(notification.createdAt)}</p>
                         )}
                       </div>
                     </div>
@@ -161,12 +148,10 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
             </div>
           </div>
 
-          {/* Right Side - Full Notification Content */}
           <div className="flex-1 bg-gray-900/30 overflow-y-auto">
             {selectedNotification ? (
               <div className="p-8">
                 <div className="max-w-3xl mx-auto">
-                  {/* Header Section */}
                   <div className="mb-6 pb-4 border-b border-cyan-500/20">
                     {selectedNotification.from && (
                       <div className="mb-3">
@@ -182,18 +167,13 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
                         </span>
                       )}
                       {selectedNotification.createdAt && (
-                        <span className="text-sm text-cyan-600/60">
-                          {formatDate(selectedNotification.createdAt)}
-                        </span>
+                        <span className="text-sm text-cyan-600/60">{formatDate(selectedNotification.createdAt)}</span>
                       )}
                     </div>
                   </div>
 
-                  {/* Content Section */}
                   <div className="mb-6">
-                    <span className="text-xs font-semibold text-cyan-600 uppercase tracking-wider mb-2 block">
-                      Message
-                    </span>
+                    <span className="text-xs font-semibold text-cyan-600 uppercase tracking-wider mb-2 block">Message</span>
                     <div className="mt-3 p-6 bg-gray-800/40 rounded-lg border border-cyan-700/30">
                       <p
                         className={`text-base leading-relaxed whitespace-pre-wrap ${
@@ -205,7 +185,6 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
                     </div>
                   </div>
 
-                  {/* Additional Info Section */}
                   {selectedNotification.metadata && (
                     <div className="mt-6 p-4 bg-gray-800/30 rounded-lg border border-cyan-700/20">
                       <span className="text-xs font-semibold text-cyan-600 uppercase tracking-wider mb-3 block">
@@ -260,4 +239,3 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
 };
 
 export default NotificationModal;
-

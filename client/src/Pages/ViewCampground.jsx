@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router";
+import { MapPin, Users, Tent, DollarSign, Share2, Heart, ArrowLeft, Star, Check, Navigation, Clock, Shield } from "lucide-react";
 import { BACKEND_URL } from "../../config";
 import toast from "react-hot-toast";
+import Navbar from "../components/Navbar";
 
 const ViewCampground = () => {
   const { id } = useParams();
@@ -14,11 +16,7 @@ const ViewCampground = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
-  useEffect(() => {
-    fetchCampgroundDetails();
-  }, [id]);
-
-  const fetchCampgroundDetails = async () => {
+  const fetchCampgroundDetails = useCallback(async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/campground/get-campground/${id}`);
       if (!response.ok) {
@@ -37,11 +35,20 @@ const ViewCampground = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    fetchCampgroundDetails();
+  }, [fetchCampgroundDetails]);
 
   const handleAddToFavorites = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please sign in to save this campground");
+        navigate("/login");
+        return;
+      }
       const response = await fetch(`${BACKEND_URL}/campground/favourites/add`, {
         method: "POST",
         headers: {
@@ -67,6 +74,11 @@ const ViewCampground = () => {
   const handleRemoveFromFavorites = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please sign in to manage your favorites");
+        navigate("/login");
+        return;
+      }
       const response = await fetch(`${BACKEND_URL}/campground/favourites/delete`, {
         method: "DELETE",
         headers: {
@@ -89,10 +101,56 @@ const ViewCampground = () => {
     }
   };
 
+  const handleShareCampground = async () => {
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    const shareData = {
+      title: campground?.title || "CampGrounds",
+      text: `Check out ${campground?.title || "this campground"} on CampGrounds!`,
+      url: shareUrl,
+    };
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard && shareUrl) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied to clipboard");
+        return;
+      }
+
+      throw new Error("Share not supported");
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        toast.error("Unable to share this campground right now");
+      }
+    }
+  };
+
   const calculateAverageRating = () => {
     if (!reviews || reviews.length === 0) return 0;
     const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
     return (sum / reviews.length).toFixed(1);
+  };
+
+  const resolveImageUrl = (source) => {
+    if (!source) return null;
+    let raw = source;
+
+    if (typeof source === "object") {
+      raw = source?.imageUrl || source?.url || source?.src || source?.path || null;
+    }
+
+    if (!raw) return null;
+
+    if (/^(https?:|data:)/i.test(raw)) {
+      return raw;
+    }
+
+    const normalized = raw.startsWith("/") ? raw : `/${raw}`;
+    return `${BACKEND_URL}${normalized}`;
   };
 
   if (loading) {
@@ -119,266 +177,390 @@ const ViewCampground = () => {
     );
   }
 
-  const images = campground.images || [];
+  const images = campground?.images || [];
   const averageRating = calculateAverageRating();
+  const heroImage = resolveImageUrl(images[selectedImage]);
+  const thumbnailImages = images.map((image) => resolveImageUrl(image));
+  const hasHeroImage = Boolean(heroImage);
+  const displayRating = averageRating > 0 ? averageRating : "New";
+  const hasReviews = reviews.length > 0;
+
+  const quickFacts = [
+    campground.place ? { label: "Location", value: campground.place, icon: MapPin } : null,
+    campground.capacity ? { label: "Capacity", value: `${campground.capacity} guests`, icon: Users } : null,
+    campground.type ? { label: "Type", value: campground.type, icon: Tent } : null,
+    campground.price ? { label: "Price", value: `$${campground.price}/night`, icon: DollarSign } : null,
+  ].filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-700 hover:text-[#164E63] transition-colors"
-          >
-            <span className="text-2xl">←</span>
-            <span className="font-medium">Back</span>
-          </button>
-          <Link to="/" className="text-[#164E63] font-semibold hover:underline">
-            Home
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-50">
+      <Navbar variant="solid" />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
-          {images.length > 0 ? (
-            <div>
-              <div className="relative h-[500px] bg-gray-900">
-                <img src={images[selectedImage]?.imageUrl} alt={campground.title} className="w-full h-full object-cover" />
-                {images.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setSelectedImage((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-900 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all"
-                    >
-                      ←
-                    </button>
-                    <button
-                      onClick={() => setSelectedImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-900 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all"
-                    >
-                      →
-                    </button>
-                  </>
-                )}
-              </div>
-              {images.length > 1 && (
-                <div className="flex gap-2 p-4 overflow-x-auto bg-gray-50">
-                  {images.map((image, index) => (
-                    <button
-                      key={image.imageId}
-                      onClick={() => setSelectedImage(index)}
-                      className={`flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border-2 transition-all ${
-                        selectedImage === index ? "border-[#164E63] scale-105" : "border-transparent"
-                      }`}
-                    >
-                      <img src={image.imageUrl} alt={`View ${index + 1}`} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
+      <div className="pt-24 pb-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <section className="relative">
+            <div className="relative overflow-hidden rounded-3xl bg-slate-900 shadow-2xl">
+              {hasHeroImage ? (
+                <img src={heroImage} alt={campground.title} className="h-[420px] w-full object-cover" />
+              ) : (
+                <div className="flex h-[420px] w-full flex-col items-center justify-center bg-gradient-to-br from-cyan-500 via-[#164E63] to-slate-900 text-white">
+                  <Tent className="h-20 w-20 mb-4" strokeWidth={1.5} />
+                  <p className="text-xl font-semibold">Images coming soon</p>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="h-[500px] flex items-center justify-center bg-gradient-to-br from-cyan-400 to-[#164E63] text-white">
-              <div className="text-center">
-                <div className="text-9xl mb-4">🏕️</div>
-                <p className="text-2xl font-semibold">{campground.title}</p>
-              </div>
-            </div>
-          )}
-        </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-slate-950/75" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h1 className="text-4xl font-bold text-gray-900 mb-2">{campground.title}</h1>
-                  <div className="flex items-center gap-4 text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-500 text-xl">⭐</span>
-                      <span className="font-semibold text-lg">{averageRating}</span>
-                      <span className="text-sm">({reviews.length} reviews)</span>
-                    </div>
-                    {campground.place && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-[#164E63]">📍</span>
-                        <span className="font-medium">{campground.place}</span>
-                      </div>
-                    )}
+              <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-10">
+                <div className="flex items-start justify-between gap-4">
+                  <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-medium text-white backdrop-blur-md transition hover:bg-white/25"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back</span>
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleShareCampground}
+                      className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-medium text-white backdrop-blur-md transition hover:bg-white/25"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={isFavorite ? handleRemoveFromFavorites : handleAddToFavorites}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium backdrop-blur-md transition ${
+                        isFavorite ? "bg-red-500/90 text-white hover:bg-red-500" : "bg-white/15 text-white hover:bg-white/25"
+                      }`}
+                      title={isFavorite ? "Remove from favorites" : "Save to favorites"}
+                    >
+                      <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                      <span className="hidden sm:inline">{isFavorite ? "Saved" : "Save"}</span>
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={isFavorite ? handleRemoveFromFavorites : handleAddToFavorites}
-                  className={`p-3 rounded-full transition-all ${
-                    isFavorite
-                      ? "bg-red-100 text-red-600 hover:bg-red-200"
-                      : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-red-600"
-                  }`}
-                  title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill={isFavorite ? "currentColor" : "none"}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                    />
-                  </svg>
-                </button>
-              </div>
 
-              <div className="border-t pt-4 mt-4">
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">About this campground</h2>
-                <p className="text-gray-700 leading-relaxed">{campground.description}</p>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <div className="text-3xl mb-2">👥</div>
-                  <div className="text-sm text-gray-600">Capacity</div>
-                  <div className="font-semibold text-gray-900">{campground.capacity} people</div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <div className="text-3xl mb-2">🏕️</div>
-                  <div className="text-sm text-gray-600">Type</div>
-                  <div className="font-semibold text-gray-900 capitalize">{campground.type}</div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  <div className="text-3xl mb-2">💰</div>
-                  <div className="text-sm text-gray-600">Price per night</div>
-                  <div className="font-semibold text-gray-900">${campground.price}</div>
-                </div>
-              </div>
-            </div>
-
-            {(campground.latitude || campground.longitude) && (
-              <div className="bg-white rounded-2xl shadow-lg p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Location</h2>
-                <div className="space-y-2 text-gray-700">
-                  {campground.place && (
-                    <p className="flex items-center gap-2">
-                      <span className="font-semibold">Place:</span>
-                      <span>{campground.place}</span>
-                    </p>
-                  )}
-                  {campground.latitude && (
-                    <p className="flex items-center gap-2">
-                      <span className="font-semibold">Latitude:</span>
-                      <span>{campground.latitude}</span>
-                    </p>
-                  )}
-                  {campground.longitude && (
-                    <p className="flex items-center gap-2">
-                      <span className="font-semibold">Longitude:</span>
-                      <span>{campground.longitude}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Reviews ({reviews.length})</h2>
-              {reviews.length > 0 ? (
                 <div className="space-y-6">
-                  {reviews.map((review) => (
-                    <div key={review.reviewId} className="border-b pb-6 last:border-b-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-semibold text-gray-900">{review.username || "Anonymous"}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            {[...Array(5)].map((_, i) => (
-                              <span key={i} className={i < review.rating ? "text-yellow-500" : "text-gray-300"}>
-                                ⭐
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        {review.createdAt && (
-                          <span className="text-sm text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</span>
-                        )}
-                      </div>
-                      <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">Campground</p>
+                      <h1 className="mt-2 text-4xl font-semibold text-white md:text-5xl">{campground.title}</h1>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to review!</p>
-              )}
-            </div>
-          </div>
+                    <div className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 backdrop-blur-md">
+                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      <span className="text-sm font-semibold text-white">{displayRating}</span>
+                      <span className="text-sm text-white/70">{hasReviews ? `(${reviews.length})` : "(New)"}</span>
+                    </div>
+                  </div>
 
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
-              <div className="border-b pb-4 mb-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-[#164E63]">${campground.price}</span>
-                  <span className="text-gray-600">/ night</span>
+                  {quickFacts.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {quickFacts.map((fact) => {
+                        const Icon = fact.icon;
+                        return (
+                          <div
+                            key={fact.label}
+                            className="flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm text-white backdrop-blur-md"
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span className="font-medium">{fact.value}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+          </section>
 
-              <button
-                onClick={() => setShowBookingModal(true)}
-                className="w-full py-4 bg-[#164E63] text-white rounded-xl font-semibold text-lg hover:bg-[#0E7490] transition-colors shadow-lg hover:shadow-xl"
-              >
-                Book Now
-              </button>
+          {thumbnailImages.length > 1 && (
+            <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
+              {thumbnailImages.map((thumbnail, index) => (
+                <button
+                  key={images[index]?.imageId || index}
+                  type="button"
+                  onClick={() => setSelectedImage(index)}
+                  className={`relative flex h-24 w-32 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400 ${
+                    selectedImage === index
+                      ? "border-[#164E63] ring-2 ring-cyan-300/50"
+                      : "border-transparent hover:border-slate-300"
+                  }`}
+                >
+                  {thumbnail ? (
+                    <img src={thumbnail} alt={`Preview ${index + 1}`} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-slate-200 text-sm text-slate-500">
+                      No preview
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr),380px]">
+            <div className="space-y-8">
+              <section className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-8">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#164E63]/10">
+                    <Navigation className="h-5 w-5 text-[#164E63]" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-900">Overview</h2>
+                    <p className="mt-1 text-sm text-slate-500">Essential details about this campground</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <p className="text-base leading-relaxed text-slate-600">
+                    {campground.description ||
+                      "This campsite is currently gathering more details. Check back soon for a full description or reach out to the host for specifics about amenities, nearby attractions, and seasonal highlights."}
+                  </p>
+
+                  {quickFacts.length > 0 && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {quickFacts.map((fact) => {
+                        const Icon = fact.icon;
+                        return (
+                          <div
+                            key={fact.label}
+                            className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
+                          >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+                              <Icon className="h-4 w-4 text-[#164E63]" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{fact.label}</p>
+                              <p className="mt-1 text-sm font-medium text-slate-800">{fact.value}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {(campground.place || campground.latitude || campground.longitude) && (
+                <section className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-8">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#164E63]/10">
+                      <MapPin className="h-5 w-5 text-[#164E63]" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900">Location & Access</h2>
+                      <p className="mt-1 text-sm text-slate-500">Coordinates and navigation details</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-5 text-sm text-slate-600">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {campground.place && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Place</p>
+                          <p className="mt-2 text-base font-medium text-slate-800">{campground.place}</p>
+                        </div>
+                      )}
+                      {campground.latitude && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Latitude</p>
+                          <p className="mt-2 text-base font-medium text-slate-800">{campground.latitude}</p>
+                        </div>
+                      )}
+                      {campground.longitude && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Longitude</p>
+                          <p className="mt-2 text-base font-medium text-slate-800">{campground.longitude}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="leading-relaxed">
+                      Use the coordinates above to pin the site in your preferred maps app. We recommend arriving before dusk to
+                      settle in comfortably and review any on-site guidelines.
+                    </p>
+                  </div>
+                </section>
+              )}
+
+              <section className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-8">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#164E63]/10">
+                    <Star className="h-5 w-5 text-[#164E63]" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-900">Guest Reviews</h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {hasReviews ? "Experiences shared by previous guests" : "Be the first to share your experience"}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  {hasReviews ? (
+                    <div className="space-y-4">
+                      {reviews.map((review) => (
+                        <div
+                          key={review.reviewId}
+                          className="rounded-xl border border-slate-200 p-5 transition hover:border-slate-300"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-[#164E63] text-sm font-semibold text-white">
+                                {(review.username || "Guest").charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{review.username || "Guest"}</p>
+                                {review.createdAt && (
+                                  <p className="text-xs text-slate-500">{new Date(review.createdAt).toLocaleDateString()}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-slate-300 fill-slate-300"
+                                  }`}
+                                />
+                              ))}
+                              <span className="ml-1 text-xs font-semibold text-slate-500">{review.rating}/5</span>
+                            </div>
+                          </div>
+                          <p className="mt-4 text-sm leading-relaxed text-slate-600">{review.comment}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+                      <Star className="h-8 w-8 mx-auto mb-3 text-slate-400" />
+                      <p className="font-medium">No reviews yet</p>
+                      <p className="mt-2">Be the first to visit and share your experience!</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            <aside className="space-y-6 lg:sticky lg:top-28 h-fit">
+              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Starting at</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-semibold text-[#164E63]">${campground.price}</span>
+                      <span className="text-sm text-slate-500">/ night</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                    <Shield className="h-3.5 w-3.5" />
+                    Verified
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowBookingModal(true)}
+                  className="mt-6 w-full rounded-xl bg-[#164E63] px-6 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-[#0E7490]"
+                >
+                  Book this campsite
+                </button>
+
+                <button
+                  type="button"
+                  onClick={isFavorite ? handleRemoveFromFavorites : handleAddToFavorites}
+                  className="mt-3 w-full rounded-xl border border-slate-200 px-6 py-3 text-sm font-medium text-slate-600 transition hover:border-[#164E63] hover:text-[#164E63]"
+                >
+                  {isFavorite ? "Remove from saved" : "Save for later"}
+                </button>
+
+                <div className="mt-6 space-y-3 text-sm text-slate-600">
+                  <div className="flex items-start gap-2.5">
+                    <Check className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span>Flexible cancellation up to 48 hours before check-in</span>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Check className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span>Charged only after host confirmation</span>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <Check className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span>Secure payments and instant notifications</span>
+                  </div>
+                </div>
+              </div>
 
               {ownerInfo && (
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Hosted by</h3>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-[#164E63] rounded-full flex items-center justify-center text-white text-xl font-bold">
+                <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-[#164E63] text-xl font-bold text-white">
                       {ownerInfo.username?.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{ownerInfo.username}</p>
-                      <p className="text-sm text-gray-600">{ownerInfo.email}</p>
+                      <p className="text-sm font-semibold text-slate-900">Hosted by {ownerInfo.username}</p>
+                      <p className="text-xs text-slate-500">{ownerInfo.email}</p>
                     </div>
                   </div>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-600">
+                    Your host is here to make your experience seamless. Reach out ahead of arrival for special requests or to
+                    confirm check-in details.
+                  </p>
                 </div>
               )}
 
-              <div className="mt-6 pt-6 border-t space-y-3">
-                <div className="flex items-center gap-3 text-gray-700">
-                  <span className="text-2xl">✓</span>
-                  <span>Free cancellation before 48 hours</span>
+              <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-cyan-50 p-6 shadow-sm ring-1 ring-slate-900/5">
+                <div className="flex items-center gap-3 mb-3">
+                  <Clock className="h-5 w-5 text-[#164E63]" />
+                  <h3 className="text-sm font-semibold text-slate-900">Need assistance?</h3>
                 </div>
-                <div className="flex items-center gap-3 text-gray-700">
-                  <span className="text-2xl">✓</span>
-                  <span>Instant booking confirmation</span>
-                </div>
-                <div className="flex items-center gap-3 text-gray-700">
-                  <span className="text-2xl">✓</span>
-                  <span>24/7 customer support</span>
-                </div>
+                <p className="text-sm leading-relaxed text-slate-600">
+                  Our support team is available 24/7 to help with route planning, weather updates, and trip preparation.
+                </p>
+                <Link
+                  to="/campgrounds"
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#164E63] hover:text-[#0E7490] transition"
+                >
+                  Explore more campgrounds
+                  <span>→</span>
+                </Link>
               </div>
-            </div>
+            </aside>
           </div>
         </div>
       </div>
 
       {showBookingModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
             <button
+              type="button"
               onClick={() => setShowBookingModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+              className="absolute right-4 top-4 text-slate-400 transition hover:text-slate-600"
             >
-              ×
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Book Your Stay</h2>
-            <p className="text-gray-600 mb-6">Booking functionality will be available soon. Please check back later!</p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#164E63]/10">
+                <Tent className="h-5 w-5 text-[#164E63]" />
+              </div>
+              <h2 className="text-2xl font-semibold text-slate-900">Book Your Stay</h2>
+            </div>
+            <p className="text-sm leading-relaxed text-slate-600">
+              Booking functionality will be available soon. In the meantime, save this campground or reach out to the host for
+              direct assistance.
+            </p>
             <button
+              type="button"
               onClick={() => setShowBookingModal(false)}
-              className="w-full py-3 bg-[#164E63] text-white rounded-xl font-semibold hover:bg-[#0E7490] transition-colors"
+              className="mt-6 w-full rounded-xl bg-[#164E63] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#0E7490]"
             >
               Close
             </button>

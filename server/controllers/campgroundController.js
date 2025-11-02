@@ -6,9 +6,9 @@ import {
   removeFromFavouritesQuery,
   getAllApprovedCampgroundsQuery,
 } from "../models/campground.js";
-import { getCampgroundReviews } from "../models/review.js";
+import { getCampgroundReviewsQuery } from "../models/review.js";
 import { createLocationQuery } from "../models/location.js";
-import { addImagesQuery } from "../models/images.js";
+import { addImagesQuery, getImagesByCampgroundQuery } from "../models/images.js";
 import { createRequestQuery } from "../models/request.js";
 import { getDBConnection } from "../db/config.js";
 
@@ -36,7 +36,7 @@ export const createCampground = async (req, res) => {
       price,
     });
     for (const file of req?.files) {
-      await addImagesQuery(connection, file?.location, newCampground?.insertId);
+      await addImagesQuery(connection, { imageUrl: file?.location, campgroundId: newCampground?.insertId });
     }
     await createRequestQuery(connection, { requestedBy: req?.user?.id, campgroundId: newCampground?.insertId });
     await connection.commit();
@@ -64,8 +64,11 @@ export const getCampgroundById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Campground not found" });
     }
     const ownerInfo = await getOwnerInfoQuery(connection, { campgroundId: campground?.id });
-    const allReviews = await getCampgroundReviews(connection, { campgroundId: campground?.id });
-    return res.status(200).json({ success: true, data: { campground, ownerInfo, allReviews } });
+    const allReviews = await getCampgroundReviewsQuery(connection, { campgroundId: campground?.id });
+    const imagesData = await getImagesByCampgroundQuery(connection, { campgroundId: campground?.id });
+    const images = imagesData.map((image) => image?.imgUrl);
+
+    return res.status(200).json({ success: true, data: { campground: { ...campground, images }, ownerInfo, allReviews } });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });

@@ -1,5 +1,10 @@
 import { getDBConnection } from "../db/config.js";
-import { createReview, getCampgroundReviews, getUserReviews, getCampgroundAverageRating } from "../models/review.js";
+import {
+  createReviewQuery,
+  getCampgroundReviewsQuery,
+  getUserReviewsQuery,
+  getCampgroundAverageRatingQuery,
+} from "../models/review.js";
 
 // Need to add constaint once booking is done :
 //    only users who had booked the campground can write review
@@ -11,7 +16,7 @@ export const addReview = async (req, res) => {
   const { campgroundId, content, rating } = req?.body;
   try {
     await connection.beginTransaction();
-    const result = await createReview(connection, { userId: req?.user?.id, campgroundId, content, rating });
+    const result = await createReviewQuery(connection, { userId: req?.user?.id, campgroundId, content, rating });
     // can send notification to owner
     await connection.commit();
     return res.status(201).json({ success: true, message: "Added review" });
@@ -31,7 +36,7 @@ export const getAllCampgroundReviews = async (req, res) => {
   const { campgroundId } = req?.params;
   try {
     await connection.beginTransaction();
-    const data = await getCampgroundReviews(connection, campgroundId);
+    const data = await getCampgroundReviewsQuery(connection, { campgroundId: campgroundId });
     await connection.commit();
     return res.status(200).json({ success: true, data });
   } catch (error) {
@@ -49,7 +54,7 @@ export const getAllUserReviews = async (req, res) => {
   }
   try {
     await connection.beginTransaction();
-    const data = await getUserReviews(connection, req?.user?.id);
+    const data = await getUserReviewsQuery(connection, { userId: req?.user?.id });
     console.log(data);
     await connection.commit();
     return res.status(200).json({ success: true, data });
@@ -69,7 +74,7 @@ export const getCampgroundRating = async (req, res) => {
   const { campgroundId } = req?.params;
   try {
     await connection.beginTransaction();
-    const data = await getCampgroundAverageRating(connection, campgroundId);
+    const data = await getCampgroundAverageRatingQuery(connection, campgroundId);
     console.log(data);
     await connection.commit();
     return res.status(200).json({ success: true, data });

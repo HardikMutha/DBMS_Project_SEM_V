@@ -48,15 +48,7 @@ const Login = () => {
           role: data?.data?.role,
         },
       });
-
-      // Check if there's a redirect URL stored
-      const redirectUrl = sessionStorage.getItem("redirectAfterLogin");
-      if (redirectUrl) {
-        sessionStorage.removeItem("redirectAfterLogin");
-        navigate(redirectUrl);
-      } else {
-        navigate("/");
-      }
+      role === "user" ? navigate("/") : navigate("/admin/dashboard");
     } catch (err) {
       setError(err.message || "An error occurred during login");
     } finally {

@@ -11,6 +11,7 @@ import ManageUsers from "./Pages/ManageUsers";
 import ManageCampgrounds from "./Pages/ManageCampgrounds";
 import ManageBookings from "./Pages/ManageBookings";
 import ManageReviews from "./Pages/ManageReviews";
+import BrowseCampgroundsPage from "./Pages/BrowseCampgroundsPage";
 import useAuthContext from "./hooks/useAuthContext";
 import { Toaster } from "react-hot-toast";
 
@@ -24,6 +25,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/campgrounds" element={<BrowseCampgroundsPage />} />
           <Route
             path="/profile"
             element={
@@ -65,10 +67,7 @@ function App() {
             element={state?.isAuthenticated && state?.role === "user" ? <UserDashboard /> : <Login />}
           />
           <Route path="/user/createcg" element={state?.isAuthenticated ? <CreateCG /> : <Login />} />
-          <Route
-            path="/campground/:id"
-            element={state?.isAuthenticated ? <ViewCampground /> : <Navigate to="/login" replace />}
-          />
+          <Route path="/campground/:id" element={<ViewCampground />} />
         </Routes>
       </BrowserRouter>
     </>

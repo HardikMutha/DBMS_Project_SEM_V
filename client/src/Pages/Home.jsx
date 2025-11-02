@@ -1,10 +1,19 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
+import React, { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router";
+import useAuthContext from "../hooks/useAuthContext";
+import NotificationModal from "../components/NotificationModal";
+import { BACKEND_URL } from "../../config";
+
 import campingBg from "/assets/camping-bg.jpg";
+
 
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const navigate = useNavigate();
 
   const handleSearch = (e) => {
@@ -21,10 +30,75 @@ const Home = () => {
     navigate("/campgrounds");
   };
 
+  const fetchNotifications = useCallback(async () => {
+    setLoadingNotifications(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${BACKEND_URL}/api/notifications`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const fetchedNotifications = data.data || [];
+          // If no notifications from API, use dummy data for testing
+          if (fetchedNotifications.length === 0) {
+            setNotifications(dummyNotifications);
+            const unread = dummyNotifications.filter((notif) => !notif.viewed).length;
+            setUnreadCount(unread);
+          } else {
+            setNotifications(fetchedNotifications);
+            const unread = fetchedNotifications.filter((notif) => !notif.viewed).length;
+            setUnreadCount(unread);
+          }
+        }
+      } else {
+        // Fallback to dummy data if API fails
+        setNotifications(dummyNotifications);
+        const unread = dummyNotifications.filter((notif) => !notif.viewed).length;
+        setUnreadCount(unread);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      // Use dummy data on error for testing
+      setNotifications(dummyNotifications);
+      const unread = dummyNotifications.filter((notif) => !notif.viewed).length;
+      setUnreadCount(unread);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }, [state?.isAuthenticated]);
+
+  useEffect(() => {
+    fetchNotifications();
+    // Optionally refresh notifications periodically
+    const interval = setInterval(fetchNotifications, 30000); // Every 30 seconds
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  const handleNotificationClick = () => {
+    if (state?.isAuthenticated) {
+      setShowNotificationModal(true);
+      // Refresh notifications when opening modal
+      fetchNotifications();
+    }
+  };
+
+  const handleNotificationUpdate = (notificationId) => {
+    // Update local state when notification is marked as read
+    setNotifications((prev) =>
+      prev.map((notif) => (notif.id === notificationId ? { ...notif, viewed: true } : notif))
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+  };
+
   return (
     <div className="h-screen flex flex-col relative">
       <Navbar variant="transparent" />
-
       <div
         className="flex-1 relative flex items-center justify-center px-6"
         style={{
@@ -113,6 +187,15 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        notifications={notifications}
+        userId={state?.user?.id}
+        onNotificationUpdate={handleNotificationUpdate}
+      />
     </div>
   );
 };

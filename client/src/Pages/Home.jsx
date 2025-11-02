@@ -1,6 +1,6 @@
 import Navbar from "../components/Navbar";
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router";
+import React, { useState, useEffect, useCallback, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 import NotificationModal from "../components/NotificationModal";
 import { BACKEND_URL } from "../../config";
@@ -32,6 +32,14 @@ const Home = () => {
   const [, setLoadingNotifications] = useState(false);
   const navigate = useNavigate();
   const { state } = useAuthContext();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.openBrowse) {
+      setSearchQuery("");
+      setShowBrowse(true);
+    }
+  }, [location]);
 
   const handleSearch = (e) => {
     e.preventDefault();

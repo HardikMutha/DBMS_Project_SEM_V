@@ -7,6 +7,11 @@ import Home from "./Pages/Home";
 import Profile from "./Pages/Profile";
 import CreateCG from "./Pages/CreateCG";
 import ViewCampground from "./Pages/ViewCampground";
+import ManageUsers from "./Pages/ManageUsers";
+import ManageCampgrounds from "./Pages/ManageCampgrounds";
+import ManageBookings from "./Pages/ManageBookings";
+import ManageReviews from "./Pages/ManageReviews";
+import BrowseCampgroundsPage from "./Pages/BrowseCampgroundsPage";
 import useAuthContext from "./hooks/useAuthContext";
 import { Toaster } from "react-hot-toast";
 
@@ -20,6 +25,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/campgrounds" element={<BrowseCampgroundsPage />} />
           <Route
             path="/profile"
             element={
@@ -41,14 +47,27 @@ function App() {
             element={state?.isAuthenticated && state?.role === "admin" ? <AdminDashboard /> : <Login />}
           />
           <Route
+            path="/admin/manage-users"
+            element={state?.isAuthenticated && state?.role === "admin" ? <ManageUsers /> : <Login />}
+          />
+          <Route
+            path="/admin/manage-campgrounds"
+            element={state?.isAuthenticated && state?.role === "admin" ? <ManageCampgrounds /> : <Login />}
+          />
+          <Route
+            path="/admin/manage-bookings"
+            element={state?.isAuthenticated && state?.role === "admin" ? <ManageBookings /> : <Login />}
+          />
+          <Route
+            path="/admin/manage-reviews"
+            element={state?.isAuthenticated && state?.role === "admin" ? <ManageReviews /> : <Login />}
+          />
+          <Route
             path="/user/dashboard"
             element={state?.isAuthenticated && state?.role === "user" ? <UserDashboard /> : <Login />}
           />
-          <Route path="/user/createcg" element={state?.isAuthenticated && state?.role === "user" ? <CreateCG /> : <Login />} />
-          <Route
-            path="/campground/:id"
-            element={state?.isAuthenticated ? <ViewCampground /> : <Navigate to="/login" replace />}
-          />
+          <Route path="/user/createcg" element={state?.isAuthenticated ? <CreateCG /> : <Login />} />
+          <Route path="/campground/:id" element={<ViewCampground />} />
         </Routes>
       </BrowserRouter>
     </>

@@ -1,10 +1,14 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 import { BACKEND_URL } from "../../config";
 
 const AdminDashboard = () => {
   const { state, dispatch } = useAuthContext();
+  const [userCount, setUserCount] = useState(0);
+  const [campgroundCount, setCampgroundCount] = useState(0);
+  const [bookingCount, setBookingCount] = useState(0);
+  const [pendingCampgroundRequests, setPendingCampgroundRequests] = useState([]);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -15,7 +19,7 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const res = await fetch(BACKEND_URL + "/admin/dashboard-stats", {
+      const res = await fetch(`${BACKEND_URL}/admin/dashboard-stats`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${state.token}`,
@@ -23,11 +27,10 @@ const AdminDashboard = () => {
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem("userCount", data.data.userCount);
-        localStorage.setItem("campgroundCount", data.data.campgroundCount);
-        localStorage.setItem("bookingCount", data.data.bookingCount);
-        localStorage.setItem("revenue", data.data.revenue);
-        localStorage.setItem("pendingCampgroundRequests", JSON.stringify(data.data.pendingCampgroundRequests));
+        setUserCount(data.data.userCount);
+        setCampgroundCount(data.data.campgroundCount);
+        setBookingCount(data.data.bookingCount);
+        setPendingCampgroundRequests(data.data.pendingCampgroundRequests);
         return;
       }
     } catch (error) {
@@ -72,7 +75,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Total Users</p>
-                <p className="text-3xl font-semibold text-gray-900 mt-2">{localStorage.getItem("userCount") || 0}</p>
+                <p className="text-3xl font-semibold text-gray-900 mt-2">{userCount || 0}</p>
               </div>
               <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +90,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Campgrounds</p>
-                <p className="text-3xl font-semibold text-gray-900 mt-2">{localStorage.getItem("campgroundCount") || 0}</p>
+                <p className="text-3xl font-semibold text-gray-900 mt-2">{campgroundCount || 0}</p>
               </div>
               <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +105,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Total Bookings</p>
-                <p className="text-3xl font-semibold text-gray-900 mt-2">{localStorage.getItem("bookingCount") || 0}</p>
+                <p className="text-3xl font-semibold text-gray-900 mt-2">{bookingCount || 0}</p>
               </div>
               <div className="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,21 +114,6 @@ const AdminDashboard = () => {
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-3">Reservation count</p>
-          </div>
-          
-          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Revenue</p>
-                <p className="text-3xl font-semibold text-gray-900 mt-2">${localStorage.getItem("revenue") || 0}</p>
-              </div>
-              <div className="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-3">Total earnings</p>
           </div>
         </div>
 
@@ -141,14 +129,17 @@ const AdminDashboard = () => {
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button className="group p-5 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left">
+                  <button 
+                    onClick={() => navigate("/admin/manage-users")}
+                    className="group p-5 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left"
+                  >
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                         </svg>
                       </div>
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">0 active</span>
+                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">{userCount || 0} active</span>
                     </div>
                     <h3 className="text-base font-semibold text-gray-900 mb-1">User Management</h3>
                     <p className="text-sm text-gray-500 mb-3">View and manage registered users, roles, and permissions</p>
@@ -160,14 +151,17 @@ const AdminDashboard = () => {
                     </div>
                   </button>
 
-                  <button className="group p-5 bg-white border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition-all text-left">
+                  <button 
+                    onClick={() => navigate("/admin/manage-campgrounds")}
+                    className="group p-5 bg-white border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition-all text-left"
+                  >
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                       </div>
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">0 listed</span>
+                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">{campgroundCount || 0} listed</span>
                     </div>
                     <h3 className="text-base font-semibold text-gray-900 mb-1">Campground Management</h3>
                     <p className="text-sm text-gray-500 mb-3">Add, edit, remove campground listings and properties</p>
@@ -179,14 +173,17 @@ const AdminDashboard = () => {
                     </div>
                   </button>
 
-                  <button className="group p-5 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:shadow-md transition-all text-left">
+                  <button 
+                    onClick={() => navigate("/admin/manage-bookings")}
+                    className="group p-5 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:shadow-md transition-all text-left"
+                  >
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                       </div>
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">0 total</span>
+                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">{bookingCount || 0} total</span>
                     </div>
                     <h3 className="text-base font-semibold text-gray-900 mb-1">Booking Operations</h3>
                     <p className="text-sm text-gray-500 mb-3">Monitor and manage all reservation activities</p>
@@ -198,7 +195,10 @@ const AdminDashboard = () => {
                     </div>
                   </button>
 
-                  <button className="group p-5 bg-white border border-gray-200 rounded-lg hover:border-amber-500 hover:shadow-md transition-all text-left">
+                  <button 
+                    onClick={() => navigate("/admin/manage-reviews")}
+                    className="group p-5 bg-white border border-gray-200 rounded-lg hover:border-amber-500 hover:shadow-md transition-all text-left"
+                  >
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
                         <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,10 +297,9 @@ const AdminDashboard = () => {
               <div className="p-6">
                 <div className="text-center py-6">
                   <div className="text-sm text-gray-500">
-                    {localStorage.getItem("pendingCampgroundRequests") &&
-                    JSON.parse(localStorage.getItem("pendingCampgroundRequests")).length > 0 ? (
+                    {pendingCampgroundRequests && pendingCampgroundRequests.length > 0 ? (
                       <ul className="space-y-2 text-left">
-                        {JSON.parse(localStorage.getItem("pendingCampgroundRequests")).map((request, index) => (
+                        {pendingCampgroundRequests.map((request, index) => (
                           <li key={index} className="border-b border-gray-200 pb-2">
                             <p className="font-medium text-gray-900">{request.title}</p>
                             <p className="text-xs text-gray-600">Requested by: {request.username}</p>

@@ -1,34 +1,29 @@
 import React, { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 import campingBg from "/assets/camping-bg.jpg";
-import BrowseCampgrounds from "../components/BrowseCampgrounds";
 
 const Home = () => {
   const { state } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showBrowse, setShowBrowse] = useState(false);
+  const navigate = useNavigate();
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      setShowBrowse(true);
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery) {
+      navigate(`/campgrounds?search=${encodeURIComponent(trimmedQuery)}`);
+    } else {
+      navigate("/campgrounds");
     }
   };
 
   const handleBrowseClick = () => {
-    setSearchQuery("");
-    setShowBrowse(true);
-  };
-
-  const handleCloseBrowse = () => {
-    setShowBrowse(false);
-    setSearchQuery("");
+    navigate("/campgrounds");
   };
 
   return (
     <div className="h-screen flex flex-col relative">
-      {/* Modern Navigation Bar */}
       <nav className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/60 to-transparent backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
@@ -116,17 +111,13 @@ const Home = () => {
         </div>
       </nav>
 
-      {/* Hero Section with Background */}
       <div
         className="flex-1 relative flex items-center justify-center px-6"
         style={{
           background: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url('${campingBg}') center/cover no-repeat fixed`,
-          filter: showBrowse ? "blur(8px)" : "none",
-          transition: "filter 0.5s ease-in-out",
         }}
       >
         <div className="relative z-10 w-full max-w-4xl text-center">
-          {/* Hero Text */}
           <div className="mb-12 space-y-4">
             <h1
               className="text-6xl md:text-7xl font-bold text-white mb-4 drop-shadow-2xl"
@@ -140,7 +131,6 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Search Bar */}
           <form onSubmit={handleSearch} className="mb-6">
             <div className="relative group">
               <input
@@ -172,7 +162,6 @@ const Home = () => {
             </div>
           </form>
 
-          {/* Browse Button */}
           <button
             onClick={handleBrowseClick}
             className="group relative inline-flex items-center gap-3 px-10 py-4 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white text-lg font-semibold rounded-2xl transition-all duration-300 border-2 border-white/30 hover:border-cyan-300 shadow-2xl hover:shadow-cyan-400/30 hover:scale-105"
@@ -191,8 +180,6 @@ const Home = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </button>
-
-          {/* Feature Cards */}
           <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
               <div className="text-4xl mb-3">🏕️</div>
@@ -209,37 +196,6 @@ const Home = () => {
               <h3 className="text-xl font-bold text-white mb-2">Easy Booking</h3>
               <p className="text-white/80 text-sm">Book your perfect spot in just a few clicks</p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Browse Campgrounds Overlay */}
-      <div
-        className={`fixed inset-0 z-50 transition-all duration-500 ease-in-out ${
-          showBrowse ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
-        style={{
-          transform: showBrowse ? "translateY(0)" : "translateY(100%)",
-        }}
-      >
-        <div className="absolute inset-0 bg-white">
-          <div className="h-full overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-[#164E63] to-cyan-600 shadow-xl z-10 px-6 py-5 flex justify-between items-center">
-              <div>
-                <h2 className="text-3xl font-bold text-white">Browse Campgrounds</h2>
-                <p className="text-cyan-100 text-sm mt-1">Discover your next adventure</p>
-              </div>
-              <button
-                onClick={handleCloseBrowse}
-                className="text-white hover:bg-white/20 rounded-full p-2 transition-all duration-300 hover:rotate-90"
-                aria-label="Close"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <BrowseCampgrounds searchQuery={searchQuery} />
           </div>
         </div>
       </div>

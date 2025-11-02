@@ -2,12 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { BACKEND_URL } from "../../config";
 import toast from "react-hot-toast";
-import useAuthContext from "../hooks/useAuthContext";
 
 const ViewCampground = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { state } = useAuthContext();
   const [loading, setLoading] = useState(true);
   const [campground, setCampground] = useState(null);
   const [ownerInfo, setOwnerInfo] = useState(null);
@@ -17,13 +15,8 @@ const ViewCampground = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
 
   useEffect(() => {
-    if (!state?.isAuthenticated) {
-      toast.error("Please login to view campground details");
-      navigate("/login");
-      return;
-    }
     fetchCampgroundDetails();
-  }, [id, state]);
+  }, [id]);
 
   const fetchCampgroundDetails = async () => {
     try {
@@ -131,7 +124,6 @@ const ViewCampground = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <button
@@ -148,7 +140,6 @@ const ViewCampground = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Image Gallery */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
           {images.length > 0 ? (
             <div>
@@ -198,9 +189,7 @@ const ViewCampground = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Title and Basic Info */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -269,7 +258,6 @@ const ViewCampground = () => {
               </div>
             </div>
 
-            {/* Location */}
             {(campground.latitude || campground.longitude) && (
               <div className="bg-white rounded-2xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Location</h2>
@@ -296,7 +284,6 @@ const ViewCampground = () => {
               </div>
             )}
 
-            {/* Reviews */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Reviews ({reviews.length})</h2>
               {reviews.length > 0 ? (
@@ -328,7 +315,6 @@ const ViewCampground = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
               <div className="border-b pb-4 mb-4">
@@ -345,7 +331,6 @@ const ViewCampground = () => {
                 Book Now
               </button>
 
-              {/* Owner Info */}
               {ownerInfo && (
                 <div className="mt-6 pt-6 border-t">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Hosted by</h3>
@@ -380,7 +365,6 @@ const ViewCampground = () => {
         </div>
       </div>
 
-      {/* Booking Modal */}
       {showBookingModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-8 relative">

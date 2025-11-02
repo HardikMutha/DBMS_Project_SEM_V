@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 import campingBg from "/assets/camping-bg.jpg";
 import BrowseCampgrounds from "../components/BrowseCampgrounds";
@@ -8,6 +8,14 @@ const Home = () => {
   const { state } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [showBrowse, setShowBrowse] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.openBrowse) {
+      setSearchQuery("");
+      setShowBrowse(true);
+    }
+  }, [location]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -95,7 +103,7 @@ const Home = () => {
 
               {state?.isAuthenticated ? (
                 <Link
-                  to="/profile"
+                  to={state.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}
                   className="flex items-center gap-2 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white font-medium px-4 py-2 rounded-full transition-all duration-300 border border-white/20"
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-[#164E63] rounded-full flex items-center justify-center text-sm font-bold">

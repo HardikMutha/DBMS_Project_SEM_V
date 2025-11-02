@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
+import campingBg from "/assets/camping-bg.jpg";
 
 const Profile = () => {
   const { state, dispatch } = useAuthContext();
@@ -19,9 +20,18 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div 
+      className="relative min-h-screen overflow-hidden bg-slate-950"
+      style={{
+        background: `url('${campingBg}') center/cover no-repeat fixed`
+      }}
+    >
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
+      <div className="pointer-events-none absolute -top-48 left-10 h-96 w-96 rounded-full bg-emerald-400/25 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-160px] right-[-40px] h-[420px] w-[420px] rounded-full bg-cyan-500/25 blur-3xl" />
+      
       {/* Navbar */}
-      <nav className="bg-[#164E63] shadow-lg">
+      <nav className="relative z-10 border-b border-white/10 backdrop-blur-md shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <Link to="/" className="flex items-center">
@@ -51,108 +61,91 @@ const Profile = () => {
       </nav>
 
       {/* Profile Content */}
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 py-16">
         {/* Profile Header */}
-        <div className="bg-white rounded-xl shadow-md p-8 mb-6">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 bg-[#164E63] rounded-full flex items-center justify-center text-white text-4xl font-bold">
-              {state.user?.username?.charAt(0).toUpperCase()}
+        <div className="relative mb-12">
+          <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg" />
+          <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-2xl backdrop-blur-xl">
+            <div className="pointer-events-none absolute inset-x-10 -top-32 h-64 rounded-full bg-gradient-to-br from-cyan-400/40 via-emerald-400/30 to-transparent blur-3xl" />
+            <div className="relative px-8 py-10">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border border-white/30 bg-gradient-to-br from-cyan-400 to-emerald-400 text-4xl font-bold text-slate-900">
+                  {state.user?.username?.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                  <h1 className="text-3xl md:text-4xl font-semibold text-white mb-2">{state.user?.username}</h1>
+                  <p className="text-white/70 mb-3">{state.user?.email}</p>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20">
+                    {state.role?.toUpperCase()}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="px-6 py-3 rounded-2xl border border-white/15 bg-white/5 text-white text-sm font-semibold hover:border-white/25 hover:bg-white/10 transition-all shadow-lg"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{state.user?.username}</h1>
-              <p className="text-gray-600 mb-2">{state.user?.email}</p>
-              <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                state.role === 'admin' 
-                  ? 'bg-purple-100 text-purple-700' 
-                  : 'bg-green-100 text-green-700'
-              }`}>
-                {state.role?.toUpperCase()}
-              </span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
-            >
-              Logout
-            </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab("info")}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-colors ${
-                activeTab === "info"
-                  ? "bg-[#164E63] text-white"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Personal Information
-            </button>
-            <button
-              onClick={() => setActiveTab("bookings")}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-colors ${
-                activeTab === "bookings"
-                  ? "bg-[#164E63] text-white"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              My Bookings
-            </button>
-            <button
-              onClick={() => setActiveTab("favorites")}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-colors ${
-                activeTab === "favorites"
-                  ? "bg-[#164E63] text-white"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Favorites
-            </button>
-          </div>
+        <div className="relative">
+          <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg" />
+          <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-2xl backdrop-blur-xl">
+            <div className="flex flex-col md:flex-row border-b border-white/10">
+              <button
+                onClick={() => setActiveTab("info")}
+                className={`flex-1 px-6 py-5 text-center font-semibold transition-all ${
+                  activeTab === "info"
+                    ? "bg-white/10 text-white border-b-2 md:border-b-0 md:border-r border-cyan-400/60"
+                    : "text-white/70 hover:bg-white/5 hover:text-white border-b md:border-b-0 md:border-r border-white/10"
+                }`}
+              >
+                Personal Information
+              </button>
+              <button
+                onClick={() => setActiveTab("bookings")}
+                className={`flex-1 px-6 py-5 text-center font-semibold transition-all ${
+                  activeTab === "bookings"
+                    ? "bg-white/10 text-white border-b-2 md:border-b-0 border-cyan-400/60"
+                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                My Bookings
+              </button>
+            </div>
 
           <div className="p-8">
             {activeTab === "info" && (
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h2>
-                <div className="space-y-4">
+                <h2 className="text-2xl font-semibold text-white mb-2">Personal Information</h2>
+                <p className="text-white/60 mb-8">View your account details</p>
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
-                    <input
-                      type="text"
-                      value={state.user?.username}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                    />
+                    <label className="block text-xs font-semibold uppercase tracking-[0.24em] text-white/60 mb-3">Username</label>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+                      <p className="text-white font-medium">{state.user?.username}</p>
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={state.user?.email}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                    />
+                    <label className="block text-xs font-semibold uppercase tracking-[0.24em] text-white/60 mb-3">Email</label>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+                      <p className="text-white font-medium">{state.user?.email}</p>
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Role</label>
-                    <input
-                      type="text"
-                      value={state.user?.role}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 capitalize"
-                    />
+                    <label className="block text-xs font-semibold uppercase tracking-[0.24em] text-white/60 mb-3">Role</label>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+                      <p className="text-white font-medium capitalize">{state.user?.role}</p>
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Member Since</label>
-                    <input
-                      type="text"
-                      value={new Date().toLocaleDateString()}
-                      readOnly
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                    />
+                    <label className="block text-xs font-semibold uppercase tracking-[0.24em] text-white/60 mb-3">Member Since</label>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+                      <p className="text-white font-medium">{new Date().toLocaleDateString()}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -160,37 +153,22 @@ const Profile = () => {
 
             {activeTab === "bookings" && (
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">My Bookings</h2>
-                <div className="text-center py-16">
-                  <div className="text-6xl mb-4">📅</div>
-                  <p className="text-xl text-gray-600 mb-4">No bookings yet</p>
-                  <p className="text-gray-500 mb-6">Start exploring campgrounds and book your first adventure!</p>
+                <h2 className="text-2xl font-semibold text-white mb-2">My Bookings</h2>
+                <p className="text-white/60 mb-8">Manage your reservations</p>
+                <div className="text-center py-20">
+                  <div className="text-6xl mb-6 opacity-50">📅</div>
+                  <p className="text-xl text-white/90 mb-3 font-semibold">No bookings yet</p>
+                  <p className="text-white/60 mb-8 max-w-md mx-auto">Start exploring campgrounds and book your first adventure!</p>
                   <Link
                     to="/"
-                    className="inline-block px-8 py-3 bg-[#164E63] text-white rounded-lg font-semibold hover:bg-[#0E7490] transition-colors"
+                    className="inline-block px-8 py-3.5 rounded-2xl border border-white/15 bg-white/5 text-white text-sm font-semibold hover:border-cyan-400/50 hover:bg-white/10 transition-all shadow-lg"
                   >
                     Browse Campgrounds
                   </Link>
                 </div>
               </div>
             )}
-
-            {activeTab === "favorites" && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Favorite Campgrounds</h2>
-                <div className="text-center py-16">
-                  <div className="text-6xl mb-4">❤️</div>
-                  <p className="text-xl text-gray-600 mb-4">No favorites yet</p>
-                  <p className="text-gray-500 mb-6">Add campgrounds to your favorites to find them easily later!</p>
-                  <Link
-                    to="/"
-                    className="inline-block px-8 py-3 bg-[#164E63] text-white rounded-lg font-semibold hover:bg-[#0E7490] transition-colors"
-                  >
-                    Browse Campgrounds
-                  </Link>
-                </div>
-              </div>
-            )}
+          </div>
           </div>
         </div>
       </div>

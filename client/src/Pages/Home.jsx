@@ -1,5 +1,5 @@
 import Navbar from "../components/Navbar";
-import React, { useState, useEffect, useCallback, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 import NotificationModal from "../components/NotificationModal";
@@ -37,7 +37,6 @@ const Home = () => {
   useEffect(() => {
     if (location.state?.openBrowse) {
       setSearchQuery("");
-      setShowBrowse(true);
     }
   }, [location]);
 

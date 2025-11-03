@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router";
 import useAuthContext from "../hooks/useAuthContext";
 
-const Navbar = ({ variant = "transparent" }) => {
+const Navbar = ({ variant = "transparent", notificationCount = 0, onNotificationClick }) => {
   const { state } = useAuthContext();
 
   const isTransparent = variant === "transparent";
@@ -12,6 +12,8 @@ const Navbar = ({ variant = "transparent" }) => {
   const logoHeightClass = isTransparent ? "h-14" : "h-12";
   const linkGapClass = isTransparent ? "gap-6" : "gap-8";
   const profileInitial = state?.user?.username?.charAt(0).toUpperCase() || "U";
+  const displayNotificationCount = Math.min(notificationCount, 9);
+  const showNotificationBadge = state?.isAuthenticated && notificationCount > 0;
 
   return (
     <nav className={navClasses}>
@@ -36,7 +38,13 @@ const Navbar = ({ variant = "transparent" }) => {
 
             <button
               type="button"
-              className="relative text-white font-medium hover:text-cyan-300 transition-all duration-300 px-2 py-1 group"
+              onClick={state?.isAuthenticated ? onNotificationClick : undefined}
+              disabled={!state?.isAuthenticated || !onNotificationClick}
+              className={`relative text-white font-medium transition-all duration-300 px-2 py-1 group ${
+                state?.isAuthenticated && onNotificationClick
+                  ? "hover:text-cyan-300"
+                  : "opacity-70 cursor-not-allowed"
+              }`}
             >
               <span className="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,8 +57,10 @@ const Navbar = ({ variant = "transparent" }) => {
                 </svg>
                 Notifications
               </span>
-              {state?.isAuthenticated && (
-                <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+              {showNotificationBadge && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white shadow-lg">
+                  {displayNotificationCount}
+                </span>
               )}
             </button>
 

@@ -133,7 +133,7 @@ const Home = () => {
 
   return (
     <div className="h-screen flex flex-col relative">
-      <Navbar variant="transparent" />
+      <Navbar variant="transparent" notificationCount={unreadCount} onNotificationClick={handleNotificationClick} />
       <div
         className="flex-1 relative flex items-center justify-center px-6"
         style={{
@@ -184,21 +184,6 @@ const Home = () => {
               </button>
             </div>
           </form>
-
-          {state?.isAuthenticated && (
-            <div className="mb-10 flex justify-center">
-              <button
-                type="button"
-                onClick={handleNotificationClick}
-                className="inline-flex items-center gap-3 rounded-full bg-white/15 px-6 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/25"
-              >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-400 text-xs font-bold text-slate-900">
-                  {Math.min(unreadCount, 9)}
-                </span>
-                <span>{unreadCount === 1 ? "Unread Notification" : "Unread Notifications"}</span>
-              </button>
-            </div>
-          )}
 
           <button
             onClick={handleBrowseClick}

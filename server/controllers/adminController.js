@@ -1,6 +1,12 @@
 import { getDBConnection } from "../db/config.js";
 import { getBookingCount } from "../models/booking.js";
-import { getAllCampgrounds, getCampgroundCount, getCampgroundRequestById, getPendingCampgroundRequests } from "../models/campground.js";
+import {
+  getAllCampgrounds,
+  getCampgroundCount,
+  getCampgroundRequestById,
+  getPendingCampgroundRequests,
+} from "../models/campground.js";
+import { getImagesByCampgroundQuery } from "../models/images.js";
 import { getAllUsers, getUserCount } from "../models/user.js";
 
 export const getDashboardStats = async (req, res) => {
@@ -12,7 +18,7 @@ export const getDashboardStats = async (req, res) => {
     await connection.beginTransaction();
     const userCount = await getUserCount(connection);
     const campgroundCount = await getCampgroundCount(connection);
-    const bookingCount = await getBookingCount(connection); 
+    const bookingCount = await getBookingCount(connection);
     const pendingCampgroundRequests = await getPendingCampgroundRequests(connection);
     await connection.commit();
     return res.status(200).json({
@@ -54,8 +60,13 @@ export const campgroundManagement = async (req, res) => {
   try {
     await connection.beginTransaction();
     const campgrounds = await getAllCampgrounds(connection);
+    const finalResponse = [];
+    campgrounds.forEach(async (cg) => {
+      const image = await getImagesByCampgroundQuery(connection, { campgroundId: cg?.id });
+      finalResponse.push({ ...cg, images: image.map((img) => img.imgUrl) });
+    });
     await connection.commit();
-    return res.status(200).json({ success: true, data: campgrounds }); 
+    return res.status(200).json({ success: true, data: finalResponse });
   } catch (error) {
     console.error("Error fetching campgrounds:", error);
     return res.status(500).json({ success: false, message: "Error fetching campgrounds" });

@@ -27,6 +27,7 @@ const ManageCampgrounds = () => {
         },
       });
       const data = await response.json();
+      console.log("Fetched campgrounds:", data);
       if (data.success) {
         setCampgrounds(data.data || []);
       }
@@ -45,7 +46,7 @@ const ManageCampgrounds = () => {
         },
       });
       const temp = await request.json();
-      const requestId = temp.data[0].id;
+      const requestId = temp.data.id;
       const res = await fetch(`${BACKEND_URL}/requests/approve-request/${requestId}`, {
         method: "POST",
         headers: {
@@ -267,8 +268,8 @@ const ManageCampgrounds = () => {
                     className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                   >
                     <div className="h-48 bg-gray-200 relative">
-                      {campground.imgUrl ? (
-                        <img src={campground.imgUrl} alt={campground.title} className="w-full h-full object-cover" />
+                      {campground.images[0] ? (
+                        <img src={campground.images[0]} alt={campground.title} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,7 +348,7 @@ const ManageCampgrounds = () => {
                           {!campground.isApproved && (
                             <>
                               <button
-                                onClick={() => handleApproveCampground(campground.campgroundId)}
+                                onClick={() => handleApproveCampground(campground.id)}
                                 className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                 title="Approve"
                               >

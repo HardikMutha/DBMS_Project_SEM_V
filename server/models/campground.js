@@ -62,7 +62,7 @@ export const getPendingCampgroundRequests = async function (connection) {
 };
 
 export const getAllCampgrounds = async function(connection) {
-  const [rows] = await connection.query("SELECT * FROM Campground JOIN Images ON Campground.id = Images.campgroundId ORDER BY Campground.id ASC");
+  const [rows] = await connection.query("SELECT * FROM Campground");
   return rows;
 };
 

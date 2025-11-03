@@ -41,9 +41,7 @@ const Navbar = ({ variant = "transparent", notificationCount = 0, onNotification
               onClick={state?.isAuthenticated ? onNotificationClick : undefined}
               disabled={!state?.isAuthenticated || !onNotificationClick}
               className={`relative text-white font-medium transition-all duration-300 px-2 py-1 group ${
-                state?.isAuthenticated && onNotificationClick
-                  ? "hover:text-cyan-300"
-                  : "opacity-70 cursor-not-allowed"
+                state?.isAuthenticated && onNotificationClick ? "hover:text-cyan-300" : "hidden"
               }`}
             >
               <span className="flex items-center gap-2">

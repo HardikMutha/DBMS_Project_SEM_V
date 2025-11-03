@@ -23,6 +23,9 @@ export const createBooking = async (req, res) => {
     if (!campground) {
       return res.status(404).json({ success: false, message: "Campground not found" });
     }
+    if (campground?.ownerId === userId) {
+      return res.status(409).json({ success: false, message: "Owners cannot book their own campgrounds" });
+    }
     const result = await createBookingQuery(connection, {
       userId,
       campgroundId: campground?.id,

@@ -12,6 +12,9 @@ import ManageCampgrounds from "./Pages/admin/ManageCampgrounds";
 import ManageBookings from "./Pages/admin/ManageBookings";
 import ManageReviews from "./Pages/admin/ManageReviews";
 import BrowseCampgroundsPage from "./Pages/BrowseCampgroundsPage";
+import CampgroundBooking from "./Pages/CampgroundBooking";
+import ManageCampground from "./Pages/ManageCampground";
+import NotFound from "./Pages/NotFound";
 import useAuthContext from "./hooks/useAuthContext";
 import { Toaster } from "react-hot-toast";
 
@@ -71,6 +74,9 @@ function App() {
           />
           <Route path="/user/createcg" element={state?.isAuthenticated ? <CreateCG /> : <Login />} />
           <Route path="/campground/:id" element={<ViewCampground />} />
+          <Route path="/campground/:id/book" element={<CampgroundBooking />} />
+          <Route path="/campground/:id/manage" element={state?.isAuthenticated ? <ManageCampground /> : <Login />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </>

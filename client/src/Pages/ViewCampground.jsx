@@ -4,6 +4,7 @@ import { MapPin, Users, Tent, DollarSign, Share2, Heart, ArrowLeft, Star, Check,
 import { BACKEND_URL } from "../../config";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
+import useAuthContext from "../hooks/useAuthContext";
 
 const ViewCampground = () => {
   const { id } = useParams();
@@ -14,7 +15,7 @@ const ViewCampground = () => {
   const [reviews, setReviews] = useState([]);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [showBookingModal, setShowBookingModal] = useState(false);
+  const { state } = useAuthContext();
 
   const fetchCampgroundDetails = useCallback(async () => {
     try {
@@ -189,8 +190,10 @@ const ViewCampground = () => {
     campground.place ? { label: "Location", value: campground.place, icon: MapPin } : null,
     campground.capacity ? { label: "Capacity", value: `${campground.capacity} guests`, icon: Users } : null,
     campground.type ? { label: "Type", value: campground.type, icon: Tent } : null,
-    campground.price ? { label: "Price", value: `$${campground.price}/night`, icon: DollarSign } : null,
+    campground.price ? { label: "Price", value: `${campground.price}/night`, icon: DollarSign } : null,
   ].filter(Boolean);
+
+  const isOwner = state?.user?.id && campground?.ownerId && Number(state.user.id) === Number(campground.ownerId);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -464,13 +467,23 @@ const ViewCampground = () => {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowBookingModal(true)}
-                  className="mt-6 w-full rounded-xl bg-[#164E63] px-6 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-[#0E7490]"
-                >
-                  Book this campsite
-                </button>
+                {isOwner ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/campground/${id}/manage`)}
+                    className="mt-6 w-full rounded-xl border border-[#164E63] px-6 py-3.5 text-base font-semibold text-[#164E63] shadow-sm transition hover:bg-[#164E63]/10"
+                  >
+                    Manage this campground
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/campground/${id}/book`)}
+                    className="mt-6 w-full rounded-xl bg-[#164E63] px-6 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-[#0E7490]"
+                  >
+                    Book this campsite
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -534,39 +547,6 @@ const ViewCampground = () => {
           </div>
         </div>
       </div>
-
-      {showBookingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-            <button
-              type="button"
-              onClick={() => setShowBookingModal(false)}
-              className="absolute right-4 top-4 text-slate-400 transition hover:text-slate-600"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#164E63]/10">
-                <Tent className="h-5 w-5 text-[#164E63]" />
-              </div>
-              <h2 className="text-2xl font-semibold text-slate-900">Book Your Stay</h2>
-            </div>
-            <p className="text-sm leading-relaxed text-slate-600">
-              Booking functionality will be available soon. In the meantime, save this campground or reach out to the host for
-              direct assistance.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowBookingModal(false)}
-              className="mt-6 w-full rounded-xl bg-[#164E63] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#0E7490]"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

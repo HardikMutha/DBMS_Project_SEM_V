@@ -11,7 +11,7 @@ import ManageUsers from "./Pages/admin/ManageUsers";
 import ManageCampgrounds from "./Pages/admin/ManageCampgrounds";
 import ManageBookings from "./Pages/admin/ManageBookings";
 import ManageReviews from "./Pages/admin/ManageReviews";
-import BrowseCampgroundsPage from "./Pages/BrowseCampgroundsPage";
+import BrowseCampgroundsPage from "./Pages/BrowseCampgrounds";
 import CampgroundBooking from "./Pages/CampgroundBooking";
 import ManageCampground from "./Pages/ManageCampground";
 import NotFound from "./Pages/NotFound";

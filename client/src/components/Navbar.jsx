@@ -28,7 +28,7 @@ const Navbar = ({ variant = "transparent", notificationCount = 0, onNotification
               className={`${logoHeightClass} w-auto transition-transform duration-300 group-hover:scale-105 drop-shadow-md`}
             />
           </Link>
-          <div className="flex items-center gap-6 md:gap-8" style={{ fontFamily: "Cantarell, sans-serif" }}>
+          <div className="flex items-center gap-6 md:gap-8">
             <Link
               to="/"
               className="text-white font-extrabold hover:text-cyan-400 transition-colors duration-300 relative group px-2 py-1 tracking-wide"

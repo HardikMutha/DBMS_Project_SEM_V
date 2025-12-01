@@ -71,12 +71,13 @@ const Home = () => {
         return;
       }
 
-      const response = await fetch(`${BACKEND_URL}/api/notifications`, {
+      const response = await fetch(`${BACKEND_URL}/notifications`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log(response);
 
       if (response.ok) {
         const data = await response.json();

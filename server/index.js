@@ -9,6 +9,7 @@ import requestRouter from "./routes/request.js";
 import reviewRouter from "./routes/review.js";
 import bookingRouter from "./routes/booking.js";
 import adminRouter from "./routes/admin.js";
+import notificationRouter from "./routes/notification.js";
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -23,6 +24,7 @@ app.use("/api/requests", requestRouter);
 app.use("/api/review", reviewRouter);
 app.use("/api/booking", bookingRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/notifications", notificationRouter);
 
 app.get("/api", (req, res) => res.send("API is running..."));
 

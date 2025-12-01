@@ -1,6 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Image as ImageIcon, Loader2, MapPin, UploadCloud, X } from "lucide-react";
+import Navbar from "../components/Navbar";
 import useAuthContext from "../hooks/useAuthContext";
 import { BACKEND_URL } from "../../config";
+import campingBg from "/assets/camping-bg.jpg";
+
+const campgroundTypes = ["Tent Camping", "RV Camping", "Cabin", "Glamping", "Backcountry", "Group Site", "Other"];
 
 const CreateCG = () => {
   const { state } = useAuthContext();
@@ -8,9 +13,9 @@ const CreateCG = () => {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [capacity, setCapacity] = useState(1);
+  const [capacity, setCapacity] = useState("1");
   const [type, setType] = useState("");
-  const [price, setPrice] = useState(0.0);
+  const [price, setPrice] = useState("");
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,42 +31,17 @@ const CreateCG = () => {
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
-  const campgroundTypes = ["Tent Camping", "RV Camping", "Cabin", "Glamping", "Backcountry", "Group Site", "Other"];
-
-  useEffect(() => {
-    if (showMapModal && !mapLoaded) {
-      loadLeaflet();
-    }
-  }, [showMapModal]);
-
-  const loadLeaflet = () => {
-    if (window.L) {
-      setMapLoaded(true);
-      initializeMap();
+  const initializeMap = useCallback(() => {
+    if (!mapRef.current || mapInstanceRef.current || !window.L) {
       return;
     }
 
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
-    document.head.appendChild(link);
-
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
-    script.onload = () => {
-      setMapLoaded(true);
-      setTimeout(initializeMap, 100);
-    };
-    document.body.appendChild(script);
-  };
-
-  const initializeMap = () => {
-    if (!mapRef.current || mapInstanceRef.current) return;
-
     const map = window.L.map(mapRef.current).setView([20.5937, 78.9629], 5);
-    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map);
+    window.L
+      .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      })
+      .addTo(map);
 
     map.on("click", async (e) => {
       const { lat, lng } = e.latlng;
@@ -84,10 +64,67 @@ const CreateCG = () => {
     });
 
     mapInstanceRef.current = map;
-  };
+  }, []);
+
+  const loadLeaflet = useCallback(() => {
+    if (mapLoaded) {
+      initializeMap();
+      return;
+    }
+
+    if (window.L) {
+      setMapLoaded(true);
+      initializeMap();
+      return;
+    }
+
+    // Lazy-load Leaflet assets only when the map modal is opened.
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
+    document.head.appendChild(link);
+
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
+    script.onload = () => {
+      setMapLoaded(true);
+      setTimeout(initializeMap, 100);
+    };
+    document.body.appendChild(script);
+  }, [initializeMap, mapLoaded]);
+
+  useEffect(() => {
+    if (!showMapModal) {
+      return;
+    }
+
+    if (!mapLoaded) {
+      loadLeaflet();
+    } else {
+      initializeMap();
+    }
+  }, [showMapModal, mapLoaded, loadLeaflet, initializeMap]);
+
+  useEffect(() => {
+    if (showMapModal) {
+      if (mapInstanceRef.current) {
+        setTimeout(() => {
+          mapInstanceRef.current.invalidateSize();
+        }, 250);
+      }
+    } else if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+    }
+  }, [showMapModal]);
 
   const handleFiles = (files) => {
     const fileArray = Array.from(files);
+    if (!fileArray.length) {
+      return;
+    }
+
     setImages((prev) => [...prev, ...fileArray]);
 
     fileArray.forEach((file) => {
@@ -116,8 +153,7 @@ const CreateCG = () => {
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = e.dataTransfer.files;
-    handleFiles(files);
+    handleFiles(e.dataTransfer.files);
   };
 
   const removeImage = (index) => {
@@ -133,28 +169,33 @@ const CreateCG = () => {
     e.preventDefault();
     setMessage(null);
 
-    if (!title || !capacity || !price) {
-      setMessage({ type: "error", text: "Please provide title, capacity and price." });
+    if (!title.trim() || !capacity || !price) {
+      setMessage({ type: "error", text: "Please provide the title, capacity, and price." });
+      return;
+    }
+
+    if (!coordinates) {
+      setMessage({ type: "error", text: "Please select the campground location on the map." });
       return;
     }
 
     const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
+    formData.append("title", title.trim());
+    formData.append("description", description.trim());
     formData.append("capacity", capacity);
     formData.append("type", type);
     formData.append("price", price);
-    formData.append("latitude", coordinates?.lat);
-    formData.append("longitude", coordinates?.lng);
-    formData.append("place", address.split(",")[0] + "," + address.split(",")[1]);
+    formData.append("latitude", coordinates?.lat ?? "");
+    formData.append("longitude", coordinates?.lng ?? "");
+
+    const addressParts = address ? address.split(",").map((part) => part.trim()).filter(Boolean) : [];
+    const place = addressParts.slice(0, 2).join(", ");
+    formData.append("place", place);
+
     images.forEach((file) => formData.append("images", file));
 
     try {
       setLoading(true);
-
-      for (const elem of formData.entries()) {
-        console.log(elem);
-      }
 
       const res = await fetch(`${BACKEND_URL}/campground/create-campground`, {
         method: "POST",
@@ -163,549 +204,308 @@ const CreateCG = () => {
         },
         body: formData,
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        setMessage({ type: "error", text: data?.message || "Failed to create campground" });
-      } else {
-        setMessage({ type: "success", text: data?.message || "Campground created successfully" });
-        setTitle("");
-        setDescription("");
-        setCapacity(1);
-        setType("");
-        setPrice(0.0);
-        setImages([]);
-        setImagePreviews([]);
-        setCoordinates(null);
-        setAddress("");
-        if (fileInputRef.current) fileInputRef.current.value = "";
+        setMessage({ type: "error", text: data?.message || "Failed to create campground." });
+        return;
+      }
+
+      setMessage({ type: "success", text: data?.message || "Campground created successfully." });
+      setTitle("");
+      setDescription("");
+      setCapacity("1");
+      setType("");
+      setPrice("");
+      setImages([]);
+      setImagePreviews([]);
+      setCoordinates(null);
+      setAddress("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "An error occurred" });
+      setMessage({ type: "error", text: "An unexpected error occurred." });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        maxWidth: 800,
-        margin: "40px auto",
-        padding: "32px",
-        backgroundColor: "#ffffff",
-        borderRadius: "12px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        border: "1px solid #e0e0e0",
-      }}
-    >
-      <h2
-        style={{
-          marginTop: 0,
-          marginBottom: 32,
-          fontSize: 28,
-          fontWeight: 600,
-          color: "#1a1a1a",
-        }}
-      >
-        Create New Campground
-      </h2>
-
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 24 }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: 8,
-              fontWeight: 500,
-              color: "#333",
-            }}
-          >
-            Title <span style={{ color: "#dc2626" }}>*</span>
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            placeholder="Enter campground title"
-            style={{
-              width: "100%",
-              padding: "12px 16px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: 15,
-              transition: "border-color 0.2s",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
-          />
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: 8,
-              fontWeight: 500,
-              color: "#333",
-            }}
-          >
-            Description
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={5}
-            placeholder="Describe your campground..."
-            style={{
-              width: "100%",
-              padding: "12px 16px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: 15,
-              fontFamily: "inherit",
-              resize: "vertical",
-              transition: "border-color 0.2s",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-            onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
-          />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: 8,
-                fontWeight: 500,
-                color: "#333",
-              }}
-            >
-              Capacity <span style={{ color: "#dc2626" }}>*</span>
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
-              required
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: 15,
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
-            />
-          </div>
-
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: 8,
-                fontWeight: 500,
-                color: "#333",
-              }}
-            >
-              Type
-            </label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: 15,
-                backgroundColor: "white",
-                outline: "none",
-                boxSizing: "border-box",
-                cursor: "pointer",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
-            >
-              <option value="">Select type</option>
-              {campgroundTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-          {/* <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: 8, 
-              fontWeight: 500,
-              color: "#333"
-            }}>
-              Location ID
-            </label>
-            <input
-              type="number"
-              value={locId}
-              onChange={(e) => setLocId(e.target.value)}
-              placeholder="Optional"
-              style={{ 
-                width: "100%", 
-                padding: "12px 16px",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: 15,
-                outline: "none",
-                boxSizing: "border-box"
-              }}
-              onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
-              onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
-            />
-          </div> */}
-
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: 8,
-                fontWeight: 500,
-                color: "#333",
-              }}
-            >
-              Price <span style={{ color: "#dc2626" }}>*</span>
-            </label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-              placeholder="0.00"
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                fontSize: 15,
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-              onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
-            />
-          </div>
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: 8,
-              fontWeight: 500,
-              color: "#333",
-            }}
-          >
-            Location
-          </label>
-          <button
-            type="button"
-            onClick={() => setShowMapModal(true)}
-            style={{
-              padding: "12px 20px",
-              backgroundColor: "#f3f4f6",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: 15,
-              fontWeight: 500,
-              color: "#374151",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#e5e7eb";
-              e.target.style.borderColor = "#9ca3af";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#f3f4f6";
-              e.target.style.borderColor = "#d1d5db";
-            }}
-          >
-            Select Location on Map
-          </button>
-          {address && (
-            <div
-              style={{
-                marginTop: 12,
-                padding: "12px 16px",
-                backgroundColor: "#f0f9ff",
-                border: "1px solid #bae6fd",
-                borderRadius: "8px",
-                fontSize: 14,
-                color: "#0c4a6e",
-              }}
-            >
-              <strong>Selected Location:</strong>
-              <div style={{ marginTop: 4 }}>{address}</div>
-              {coordinates && (
-                <div style={{ marginTop: 4, fontSize: 13, color: "#075985" }}>
-                  Lat: {coordinates.lat.toFixed(6)}, Lng: {coordinates.lng.toFixed(6)}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <label
-            style={{
-              display: "block",
-              marginBottom: 8,
-              fontWeight: 500,
-              color: "#333",
-            }}
-          >
-            Images
-          </label>
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              border: `2px dashed ${isDragging ? "#3b82f6" : "#d1d5db"}`,
-              borderRadius: "8px",
-              padding: "32px",
-              textAlign: "center",
-              cursor: "pointer",
-              backgroundColor: isDragging ? "#eff6ff" : "#f9fafb",
-              transition: "all 0.2s",
-            }}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileInput}
-              style={{ display: "none" }}
-            />
-            <div style={{ color: "#6b7280", fontSize: 15 }}>
-              <div style={{ marginBottom: 8, fontSize: 16, fontWeight: 500, color: "#374151" }}>Drag and drop images here</div>
-              <div>or click to browse</div>
-            </div>
-          </div>
-
-          {imagePreviews.length > 0 && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-                gap: 12,
-                marginTop: 16,
-              }}
-            >
-              {imagePreviews.map((preview, idx) => (
-                <div key={idx} style={{ position: "relative" }}>
-                  <img
-                    src={preview}
-                    alt={`Preview ${idx + 1}`}
-                    style={{
-                      width: "100%",
-                      height: 140,
-                      objectFit: "cover",
-                      borderRadius: "8px",
-                      border: "1px solid #e5e7eb",
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(idx)}
-                    style={{
-                      position: "absolute",
-                      top: 6,
-                      right: 6,
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      backgroundColor: "rgba(0,0,0,0.7)",
-                      color: "white",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 18,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: 0,
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "14px 24px",
-            backgroundColor: loading ? "#9ca3af" : "#3b82f6",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
-            transition: "background-color 0.2s",
-          }}
-          onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = "#2563eb")}
-          onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = "#3b82f6")}
-        >
-          {loading ? "Creating..." : "Create Campground"}
-        </button>
-      </form>
-
-      {message && (
+    <>
+      <Navbar variant="transparent" />
+      <div className="relative min-h-screen overflow-hidden bg-slate-950">
         <div
+          className="absolute inset-0"
           style={{
-            marginTop: 20,
-            padding: "12px 16px",
-            borderRadius: "8px",
-            backgroundColor: message.type === "error" ? "#fef2f2" : "#f0fdf4",
-            border: `1px solid ${message.type === "error" ? "#fecaca" : "#bbf7d0"}`,
-            color: message.type === "error" ? "#991b1b" : "#166534",
-            fontSize: 15,
+            background: `url('${campingBg}') center/cover no-repeat fixed`,
           }}
-        >
-          {message.text}
+        />
+        <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm" />
+        <div className="pointer-events-none absolute -top-48 left-10 h-96 w-96 rounded-full bg-emerald-400/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-[-160px] right-[-40px] h-[420px] w-[420px] rounded-full bg-cyan-500/25 blur-3xl" />
+
+        <div className="relative z-10 px-6 pb-20 pt-28">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 lg:flex-row">
+            <div className="lg:max-w-sm text-white">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-white/70">
+                Host with us
+              </span>
+              <h1 className="mt-6 text-4xl font-semibold leading-tight sm:text-5xl">Create a new campground listing</h1>
+              <p className="mt-4 text-base text-white/75">
+                Share your favourite outdoor retreat with a growing community of explorers. Highlight amenities, showcase views, and make reservations effortless.
+              </p>
+            </div>
+
+            <div className="relative w-full lg:max-w-3xl">
+              <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg" />
+              <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/80 shadow-2xl backdrop-blur-xl">
+                <div className="pointer-events-none absolute inset-x-10 -top-32 h-64 rounded-full bg-gradient-to-br from-cyan-400/40 via-emerald-400/30 to-transparent blur-3xl" />
+                <div className="relative px-6 py-10 sm:px-10">
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-3xl font-semibold text-white">Campground details</h2>
+                    <p className="text-sm text-white/70">Complete the fields below. You can always edit later.</p>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="mt-8 space-y-8">
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label htmlFor="title" className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                          Title
+                          <span className="text-rose-300">*</span>
+                        </label>
+                        <input
+                          id="title"
+                          type="text"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          placeholder="e.g. Misty Pines Lakeside Retreat"
+                          className="block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 shadow-inner transition focus:border-cyan-300 focus:bg-slate-900/70 focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="description" className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                          Description
+                        </label>
+                        <textarea
+                          id="description"
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={4}
+                          placeholder="Tell campers what makes this spot special, amenities available, seasonal highlights..."
+                          className="block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 shadow-inner transition focus:border-cyan-300 focus:bg-slate-900/70 focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+                        />
+                      </div>
+
+                      <div className="grid gap-6 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label htmlFor="capacity" className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                            Capacity
+                            <span className="text-rose-300">*</span>
+                          </label>
+                          <input
+                            id="capacity"
+                            type="number"
+                            min={1}
+                            value={capacity}
+                            onChange={(e) => setCapacity(e.target.value)}
+                            className="block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white shadow-inner transition focus:border-cyan-300 focus:bg-slate-900/70 focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor="type" className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                            Type
+                          </label>
+                          <select
+                            id="type"
+                            value={type}
+                            onChange={(e) => setType(e.target.value)}
+                            className="block w-full appearance-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white shadow-inner transition focus:border-cyan-300 focus:bg-slate-900/70 focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+                          >
+                            <option value="" className="bg-slate-900 text-white">
+                              Select type
+                            </option>
+                            {campgroundTypes.map((option) => (
+                              <option key={option} value={option} className="bg-slate-900 text-white">
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-6 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label htmlFor="price" className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                            Price per night
+                            <span className="text-rose-300">*</span>
+                          </label>
+                          <div className="relative">
+                            <input
+                              id="price"
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={price}
+                              onChange={(e) => setPrice(e.target.value)}
+                              placeholder="1200"
+                              className="block w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 py-3 text-white shadow-inner transition focus:border-cyan-300 focus:bg-slate-900/70 focus:outline-none focus:ring-2 focus:ring-cyan-400/30"
+                              required
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm font-medium text-white/60">
+                              ₹
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">Location</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowMapModal(true)}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300 hover:bg-white/10"
+                          >
+                            <MapPin className="h-4 w-4" /> Select on map
+                          </button>
+                        </div>
+                      </div>
+
+                      {address && (
+                        <div className="rounded-2xl border border-cyan-400/40 bg-cyan-400/10 px-5 py-4 text-sm text-cyan-100">
+                          <p className="font-semibold text-cyan-50">Selected location</p>
+                          <p className="mt-1 text-cyan-50/80">{address}</p>
+                          {coordinates && (
+                            <p className="mt-2 text-xs text-cyan-50/70">
+                              Lat: {coordinates.lat.toFixed(6)}, Lng: {coordinates.lng.toFixed(6)}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">Images</label>
+                      <div
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`mt-3 flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed px-6 py-10 text-center transition ${
+                          isDragging ? "border-cyan-300 bg-cyan-400/10" : "border-white/15 bg-white/5 hover:border-white/25 hover:bg-white/10"
+                        }`}
+                      >
+                        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileInput} className="hidden" />
+                        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-white/70">
+                          <UploadCloud className="h-6 w-6" />
+                        </span>
+                        <p className="mt-4 text-base font-semibold text-white">Drag & drop to upload</p>
+                        <p className="text-sm text-white/60">or click to browse your library</p>
+                      </div>
+
+                      {imagePreviews.length > 0 && (
+                        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                          {imagePreviews.map((preview, idx) => (
+                            <div key={`${preview}-${idx}`} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur">
+                              <img src={preview} alt={`Preview ${idx + 1}`} className="h-36 w-full object-cover transition duration-300 group-hover:scale-105" />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(idx)}
+                                className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/70 text-white transition hover:bg-slate-900"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-400 px-6 py-3.5 text-base font-semibold text-slate-900 transition hover:from-cyan-300 hover:via-sky-300 hover:to-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {loading && <Loader2 className="h-5 w-5 animate-spin" />}
+                        {loading ? "Creating campground" : "Create campground"}
+                      </button>
+
+                      {message && (
+                        <div
+                          className={`rounded-2xl border px-4 py-3 text-sm ${
+                            message.type === "error"
+                              ? "border-rose-500/40 bg-rose-500/20 text-rose-100"
+                              : "border-emerald-500/40 bg-emerald-500/15 text-emerald-100"
+                          }`}
+                        >
+                          {message.text}
+                        </div>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
 
       {showMapModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "12px",
-              width: "90%",
-              maxWidth: 900,
-              maxHeight: "90vh",
-              overflow: "hidden",
-              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
-            }}
-          >
-            <div
-              style={{
-                padding: "20px 24px",
-                borderBottom: "1px solid #e5e7eb",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Select Location</h3>
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 px-4 py-8 backdrop-blur-sm">
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl border border-white/15 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-5 text-white">
+              <div>
+                <h3 className="text-xl font-semibold">Select location</h3>
+                <p className="text-xs uppercase tracking-[0.24em] text-white/60">Click on the map to drop a marker</p>
+              </div>
               <button
+                type="button"
                 onClick={() => setShowMapModal(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: 28,
-                  cursor: "pointer",
-                  color: "#6b7280",
-                  padding: 0,
-                  width: 32,
-                  height: 32,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition hover:border-white/25 hover:bg-white/10"
               >
-                ×
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div style={{ padding: 16, fontSize: 14, color: "#6b7280" }}>Click on the map to select a location</div>
-            <div
-              ref={mapRef}
-              style={{
-                height: 500,
-                width: "100%",
-              }}
-            />
-            <div
-              style={{
-                padding: "16px 24px",
-                borderTop: "1px solid #e5e7eb",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 12,
-              }}
-            >
-              <button
-                onClick={() => setShowMapModal(false)}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#f3f4f6",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontSize: 15,
-                  fontWeight: 500,
-                  color: "#374151",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmLocation}
-                disabled={!coordinates}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: coordinates ? "#3b82f6" : "#d1d5db",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: coordinates ? "pointer" : "not-allowed",
-                  fontSize: 15,
-                  fontWeight: 500,
-                }}
-              >
-                Confirm Location
-              </button>
+
+            <div className="px-6 py-4 text-sm text-white/70">
+              Choose the exact point campers should arrive at. We will capture the formatted address automatically.
+            </div>
+
+            <div ref={mapRef} className="h-[480px] w-full" />
+
+            <div className="flex items-center justify-between border-t border-white/10 px-6 py-5 text-sm text-white/70">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-white/50">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
+                {coordinates ? "Location pinned" : "Awaiting selection"}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowMapModal(false)}
+                  className="rounded-2xl border border-white/15 px-5 py-2.5 font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmLocation}
+                  disabled={!coordinates}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-400 px-5 py-2.5 font-semibold text-slate-900 transition hover:from-cyan-300 hover:via-sky-300 hover:to-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {coordinates ? "Confirm location" : "Select a point"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

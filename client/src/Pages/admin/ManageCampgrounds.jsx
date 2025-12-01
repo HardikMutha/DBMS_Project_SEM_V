@@ -10,13 +10,9 @@ const ManageCampgrounds = () => {
   const { state } = useAuthContext();
   const navigate = useNavigate();
   const [campgrounds, setCampgrounds] = useState([]);
-  const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCampground, setSelectedCampground] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectionContent, setRejectionContent] = useState("");
-  const [rejectingCampground, setRejectingCampground] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -33,7 +29,8 @@ const ManageCampgrounds = () => {
       });
       const data = await response.json();
       if (data.success) {
-        setCampgrounds(data.data || []);
+        const approvedCampgrounds = (data.data || []).filter((cg) => cg.isApproved);
+        setCampgrounds(approvedCampgrounds);
       }
     } catch (error) {
       console.error("Error fetching campgrounds:", error);
@@ -43,92 +40,12 @@ const ManageCampgrounds = () => {
     }
   };
 
-  const handleApproveCampground = async (campgroundId) => {
-    try {
-      const request = await fetch(`${BACKEND_URL}/admin/get-campground-request/${campgroundId}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${state.token}`,
-        },
-      });
-      const temp = await request.json();
-      const requestId = temp.data.id;
-      const res = await fetch(`${BACKEND_URL}/requests/approve-request/${requestId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${state?.token}`,
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Campground approved successfully");
-        fetchCampgrounds();
-      } else {
-        toast.error(data.message || "Failed to approve campground");
-      }
-    } catch (error) {
-      console.error("Error approving campground:", error);
-      toast.error("Failed to approve campground");
-    }
-  };
-
-  const handleRejectCampground = async () => {
-    if (!rejectingCampground) return;
-    if (!rejectionContent.trim()) {
-      toast.error("Please provide a reason for rejection");
-      return;
-    }
-    try {
-      const request = await fetch(`${BACKEND_URL}/admin/get-campground-request/${rejectingCampground.id}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${state.token}`,
-        },
-      });
-      const temp = await request.json();
-      const requestId = temp.data.id;
-      const response = await fetch(`${BACKEND_URL}/requests/reject-request/${requestId}`, {
-        method: "POST",
-        body: JSON.stringify({ content: rejectionContent }),
-        headers: {
-          Authorization: `Bearer ${state?.token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Campground Request Rejected");
-        setShowRejectModal(false);
-        setRejectionContent("");
-        setRejectingCampground(null);
-        fetchCampgrounds();
-      } else {
-        toast.error(data.message || "Failed to Reject Campground");
-      }
-    } catch (err) {
-      console.log(err);
-      toast.error("Failed to reject campground");
-    }
-  };
-
-  const openRejectModal = (campground) => {
-    setRejectingCampground(campground);
-    setRejectionContent("");
-    setShowRejectModal(true);
-  };
-
   const handleDeleteCampground = async (campgroundId) => {
-    // to be implemented along with backend
+    toast.error("Delete functionality not implemented yet");
   };
 
   const getFilteredCampgrounds = () => {
     let filtered = campgrounds;
-
-    if (activeTab === "pending") {
-      filtered = campgrounds.filter((cg) => !cg.isApproved);
-    } else if (activeTab === "approved") {
-      filtered = campgrounds.filter((cg) => cg.isApproved);
-    }
 
     if (searchTerm) {
       filtered = filtered.filter(
@@ -142,8 +59,6 @@ const ManageCampgrounds = () => {
 
   const filteredCampgrounds = getFilteredCampgrounds();
   const totalCampgrounds = campgrounds.length;
-  const pendingCampgrounds = campgrounds.filter((cg) => !cg.isApproved).length;
-  const approvedCampgrounds = campgrounds.filter((cg) => cg.isApproved).length;
 
   return (
     <div
@@ -162,13 +77,12 @@ const ManageCampgrounds = () => {
       <AdminNavbar title="Campground Management" />
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
           <div className="relative group">
             <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />
             <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl p-5 flex items-center justify-between">
               <div>
-                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Total Campgrounds</p>
+                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Total Approved Campgrounds</p>
                 <p className="text-3xl font-bold text-white mt-1">{totalCampgrounds}</p>
               </div>
               <div className="w-12 h-12 bg-green-500/20 border border-green-400/30 rounded-xl flex items-center justify-center">
@@ -178,46 +92,6 @@ const ManageCampgrounds = () => {
                     strokeLinejoin="round"
                     strokeWidth={2}
                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative group">
-            <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />
-            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl p-5 flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Pending Approval</p>
-                <p className="text-3xl font-bold text-white mt-1">{pendingCampgrounds}</p>
-              </div>
-              <div className="w-12 h-12 bg-amber-500/20 border border-amber-400/30 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative group">
-            <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />
-            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl p-5 flex items-center justify-between">
-              <div>
-                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Approved</p>
-                <p className="text-3xl font-bold text-white mt-1">{approvedCampgrounds}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-500/20 border border-blue-400/30 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
@@ -245,49 +119,13 @@ const ManageCampgrounds = () => {
           </div>
         </div>
 
-        {/* Main Content Area */}
         <div className="relative">
           <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg" />
           <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-2xl backdrop-blur-xl">
-            {/* Toolbar */}
             <div className="border-b border-white/10 px-6 py-5">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {/* Tabs */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setActiveTab("all")}
-                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                      activeTab === "all"
-                        ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                        : "text-white/60 hover:bg-white/10 border border-transparent"
-                    }`}
-                  >
-                    All Campgrounds
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("pending")}
-                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                      activeTab === "pending"
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                        : "text-white/60 hover:bg-white/10 border border-transparent"
-                    }`}
-                  >
-                    Pending ({pendingCampgrounds})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("approved")}
-                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                      activeTab === "approved"
-                        ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                        : "text-white/60 hover:bg-white/10 border border-transparent"
-                    }`}
-                  >
-                    Approved ({approvedCampgrounds})
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1 max-w-md">
+                <div className="flex items-center gap-3 w-full">
+                  <div className="relative flex-1">
                     <input
                       type="text"
                       placeholder="Search campgrounds..."
@@ -338,7 +176,6 @@ const ManageCampgrounds = () => {
               </div>
             </div>
 
-            {/* Content */}
             <div className="p-6">
               {isLoading ? (
                 <div className="flex items-center justify-center py-20">
@@ -381,14 +218,8 @@ const ManageCampgrounds = () => {
                           </div>
                         )}
                         <div className="absolute top-3 right-3">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              campground.isApproved
-                                ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                                : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                            }`}
-                          >
-                            {campground.isApproved ? "APPROVED" : "PENDING"}
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30">
+                            APPROVED
                           </span>
                         </div>
                       </div>
@@ -445,29 +276,6 @@ const ManageCampgrounds = () => {
                               </svg>
                             </button>
 
-                            {!campground.isApproved && (
-                              <>
-                                <button
-                                  onClick={() => handleApproveCampground(campground.id)}
-                                  className="p-2 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors"
-                                  title="Approve"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={() => openRejectModal(campground)}
-                                  className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
-                                  title="Reject"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </>
-                            )}
-
                             <button
                               onClick={() => handleDeleteCampground(campground.id)}
                               className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
@@ -491,7 +299,6 @@ const ManageCampgrounds = () => {
               )}
             </div>
 
-            {/* Footer */}
             {filteredCampgrounds.length > 0 && (
               <div className="border-t border-white/10 px-6 py-4 flex items-center justify-between">
                 <span className="text-sm text-white/50">
@@ -504,7 +311,6 @@ const ManageCampgrounds = () => {
         </div>
       </main>
 
-      {/* Modal */}
       {showModal && selectedCampground && (
         <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="fixed inset-0 z-10 bg-black/50" onClick={() => setShowModal(false)} aria-hidden="true"></div>
@@ -544,14 +350,8 @@ const ManageCampgrounds = () => {
                       </svg>
                       {selectedCampground.type || "Unknown Type"}
                     </span>
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        selectedCampground.isApproved
-                          ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                          : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                      }`}
-                    >
-                      {selectedCampground.isApproved ? "APPROVED" : "PENDING"}
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30">
+                      APPROVED
                     </span>
                   </div>
                 </div>
@@ -571,126 +371,6 @@ const ManageCampgrounds = () => {
                     <p className="text-xl font-bold text-white">{selectedCampground.capacity || 0} guests</p>
                   </div>
                 </div>
-
-                {!selectedCampground.isApproved && (
-                  <div className="pt-4 border-t border-white/10 flex gap-3">
-                    <button
-                      onClick={() => {
-                        handleApproveCampground(selectedCampground.id);
-                        setShowModal(false);
-                      }}
-                      className="flex-1 px-4 py-2 bg-green-500/20 border border-green-500/30 text-green-300 rounded-xl font-medium transition-colors hover:bg-green-500/30"
-                    >
-                      Approve Campground
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowModal(false);
-                        openRejectModal(selectedCampground);
-                      }}
-                      className="flex-1 px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl font-medium transition-colors hover:bg-red-500/30"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rejection Modal */}
-      {showRejectModal && rejectingCampground && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="reject-modal-title" role="dialog" aria-modal="true">
-          <div
-            className="fixed inset-0 z-10 bg-black/50"
-            onClick={() => {
-              setShowRejectModal(false);
-              setRejectionContent("");
-              setRejectingCampground(null);
-            }}
-            aria-hidden="true"
-          ></div>
-
-          <div className="fixed inset-0 z-20 flex items-center justify-center p-4">
-            <div className="relative bg-slate-800 border border-white/20 rounded-2xl text-left overflow-hidden shadow-2xl w-full max-w-md">
-              <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white" id="reject-modal-title">
-                  Reject Campground
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowRejectModal(false);
-                    setRejectionContent("");
-                    setRejectingCampground(null);
-                  }}
-                  className="text-white/40 hover:text-white transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                  <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">Rejecting: {rejectingCampground.title}</p>
-                    <p className="text-xs text-white/50">This action cannot be undone</p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white/70 mb-2">
-                    Reason for Rejection <span className="text-red-400">*</span>
-                  </label>
-                  <textarea
-                    value={rejectionContent}
-                    onChange={(e) => setRejectionContent(e.target.value)}
-                    placeholder="Please provide a detailed reason for rejecting this campground..."
-                    rows={4}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent transition-all resize-none"
-                  />
-                  <p className="mt-1 text-xs text-white/40">This reason will be sent to the campground owner.</p>
-                </div>
-              </div>
-
-              <div className="bg-white/5 px-6 py-4 flex flex-row-reverse gap-3">
-                <button
-                  onClick={handleRejectCampground}
-                  disabled={!rejectionContent.trim()}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                    rejectionContent.trim()
-                      ? "bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
-                      : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
-                  }`}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Reject Campground
-                </button>
-                <button
-                  onClick={() => {
-                    setShowRejectModal(false);
-                    setRejectionContent("");
-                    setRejectingCampground(null);
-                  }}
-                  className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl font-medium hover:bg-white/10 transition-all"
-                >
-                  Cancel
-                </button>
               </div>
             </div>
           </div>

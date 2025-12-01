@@ -7,7 +7,16 @@ export const createRequestQuery = async (connection, { requestedBy, campgroundId
 };
 
 export const getAllRequestsQuery = async (connection) => {
-  const [rows] = await connection.query(`SELECT * FROM Request`);
+  const [rows] =
+    await connection.query(`select temp2.requestId as id, temp2.status, place,longitude,latitude,username,email,title,description,capacity,type,price from Location as loc right join (
+	select * from Users as u RIGHT JOIN (
+	select req.id as requestId, req.status, title,description,capacity,type,locId,ownerId,isApproved,price,requestedBy from 
+	Request as req
+	LEFT JOIN 
+	Campground as cg 
+	on cg.id = req.campgroundId
+	) as temp on temp.requestedBy = u.id
+) as temp2 on loc.id = temp2.locId`);
   return rows;
 };
 

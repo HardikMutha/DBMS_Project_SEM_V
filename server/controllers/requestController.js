@@ -63,7 +63,6 @@ export const getAllRequests = async (req, res) => {
   try {
     await connection.beginTransaction();
     const data = await getAllRequestsQuery(connection);
-    console.log(data);
     await connection.commit();
     return res.status(200).json({ success: true, data });
   } catch (err) {

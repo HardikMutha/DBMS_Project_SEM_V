@@ -1,16 +1,15 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
 import useAuthContext from "../../hooks/useAuthContext";
 import { BACKEND_URL } from "../../../config";
 import toast from "react-hot-toast";
 import AdminNavbar from "../../components/AdminNavbar";
+import RequestDetailsModal from "../../components/RequestDetailsModal";
 
 const ManageRequests = () => {
   const { state } = useAuthContext();
-  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
-  const [activeTab, setActiveTab] = useState("pending");
+  const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -19,88 +18,6 @@ const ManageRequests = () => {
   const [rejectingRequest, setRejectingRequest] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Placeholder data - replace with API call
-  const placeholderRequests = [
-    {
-      id: 1,
-      campgroundId: 101,
-      campgroundTitle: "Mountain View Resort",
-      campgroundType: "Resort",
-      campgroundPrice: 150,
-      campgroundDescription: "A beautiful mountain resort with stunning views and modern amenities.",
-      campgroundImage: null,
-      userId: 5,
-      username: "john_doe",
-      userEmail: "john@example.com",
-      status: "pending",
-      createdAt: "2024-11-28T10:30:00Z",
-      message: "I would like to list my new campground for approval.",
-    },
-    {
-      id: 2,
-      campgroundId: 102,
-      campgroundTitle: "Lakeside Camping",
-      campgroundType: "Campsite",
-      campgroundPrice: 75,
-      campgroundDescription: "Peaceful lakeside camping with fishing and kayaking available.",
-      campgroundImage: null,
-      userId: 8,
-      username: "jane_smith",
-      userEmail: "jane@example.com",
-      status: "pending",
-      createdAt: "2024-11-27T14:45:00Z",
-      message: "Requesting approval for our family-owned campsite.",
-    },
-    {
-      id: 3,
-      campgroundId: 103,
-      campgroundTitle: "Forest Retreat",
-      campgroundType: "Cabin",
-      campgroundPrice: 200,
-      campgroundDescription: "Cozy cabin in the heart of the forest, perfect for a weekend getaway.",
-      campgroundImage: null,
-      userId: 12,
-      username: "mike_wilson",
-      userEmail: "mike@example.com",
-      status: "approved",
-      createdAt: "2024-11-25T09:15:00Z",
-      message: "Please approve our new cabin listing.",
-      reviewedAt: "2024-11-26T11:00:00Z",
-    },
-    {
-      id: 4,
-      campgroundId: 104,
-      campgroundTitle: "Desert Oasis Camp",
-      campgroundType: "Glamping",
-      campgroundPrice: 250,
-      campgroundDescription: "Luxury glamping experience in the desert with stargazing.",
-      campgroundImage: null,
-      userId: 15,
-      username: "sarah_brown",
-      userEmail: "sarah@example.com",
-      status: "rejected",
-      createdAt: "2024-11-24T16:20:00Z",
-      message: "New glamping site for approval.",
-      reviewedAt: "2024-11-25T10:30:00Z",
-      rejectionReason: "Insufficient safety measures documented. Please provide fire safety certifications.",
-    },
-    {
-      id: 5,
-      campgroundId: 105,
-      campgroundTitle: "Beachfront Paradise",
-      campgroundType: "Beach Camp",
-      campgroundPrice: 180,
-      campgroundDescription: "Wake up to the sound of waves at this beautiful beachfront camping spot.",
-      campgroundImage: null,
-      userId: 20,
-      username: "alex_johnson",
-      userEmail: "alex@example.com",
-      status: "pending",
-      createdAt: "2024-11-29T08:00:00Z",
-      message: "Excited to share our beachfront camping location!",
-    },
-  ];
-
   useEffect(() => {
     fetchRequests();
   }, []);
@@ -108,49 +25,42 @@ const ManageRequests = () => {
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${BACKEND_URL}/admin/requests`, {
-      //   headers: {
-      //     Authorization: `Bearer ${state.token}`,
-      //   },
-      // });
-      // const data = await response.json();
-      // if (data.success) {
-      //   setRequests(data.data || []);
-      // }
+      const res = await fetch(`${BACKEND_URL}/requests/get-all-requests/`, {
+        headers: {
+          Authorization: `Bearer ${state?.token}`,
+        },
+      });
 
-      // Using placeholder data for now
-      setTimeout(() => {
-        setRequests(placeholderRequests);
-        setIsLoading(false);
-      }, 500);
-    } catch (error) {
-      console.error("Error fetching requests:", error);
-      toast.error("Failed to load requests");
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data?.message || "An Error Occured while fetching the data");
+      }
+      setRequests(data?.data || []);
+    } catch (err) {
+      console.log(err);
+      toast.error(err?.message || "An Error Occurred ! Please Try Again Later");
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleApproveRequest = async (requestId) => {
-    try {
-      // TODO: Replace with actual API call
-      // const res = await fetch(`${BACKEND_URL}/requests/approve-request/${requestId}`, {
-      //   method: "POST",
-      //   headers: {
-      //     Authorization: `Bearer ${state?.token}`,
-      //   },
-      // });
-      // const data = await res.json();
-      // if (data.success) {
-      //   toast.success("Request approved successfully");
-      //   fetchRequests();
-      // }
+    if (!requestId) return;
 
-      // Placeholder action
-      setRequests((prev) =>
-        prev.map((req) => (req.id === requestId ? { ...req, status: "approved", reviewedAt: new Date().toISOString() } : req))
-      );
-      toast.success("Request approved successfully");
+    try {
+      const res = await fetch(`${BACKEND_URL}/requests/approve-request/${requestId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${state?.token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Request approved successfully");
+        setRequests((prev) => prev.map((req) => (req.id === requestId ? { ...req, status: "approved" } : req)));
+      } else {
+        toast.error(data.message || "Failed to approve request");
+      }
     } catch (error) {
       console.error("Error approving request:", error);
       toast.error("Failed to approve request");
@@ -164,30 +74,25 @@ const ManageRequests = () => {
       return;
     }
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${BACKEND_URL}/requests/reject-request/${rejectingRequest.id}`, {
-      //   method: "POST",
-      //   body: JSON.stringify({ content: rejectionContent }),
-      //   headers: {
-      //     Authorization: `Bearer ${state?.token}`,
-      //     "Content-Type": "application/json",
-      //   },
-      // });
-      // const data = await response.json();
-      // if (data.success) {
-      //   toast.success("Request rejected");
-      //   setShowRejectModal(false);
-      //   setRejectionContent("");
-      //   setRejectingRequest(null);
-      //   fetchRequests();
-      // }
+      const response = await fetch(`${BACKEND_URL}/requests/reject-request/${rejectingRequest.id}`, {
+        method: "POST",
+        body: JSON.stringify({ content: rejectionContent }),
+        headers: {
+          Authorization: `Bearer ${state?.token}`,
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Request rejected");
+        setShowRejectModal(false);
+        setRejectionContent("");
+        setRejectingRequest(null);
+        fetchRequests();
+      }
 
-      // Placeholder action
       setRequests((prev) =>
         prev.map((req) =>
-          req.id === rejectingRequest.id
-            ? { ...req, status: "rejected", reviewedAt: new Date().toISOString(), rejectionReason: rejectionContent }
-            : req
+          req.id === rejectingRequest.id ? { ...req, status: "rejected", rejectionReason: rejectionContent } : req
         )
       );
       toast.success("Request rejected");
@@ -210,7 +115,7 @@ const ManageRequests = () => {
     let filtered = requests;
 
     if (activeTab === "pending") {
-      filtered = requests.filter((req) => req.status === "pending");
+      filtered = requests.filter((req) => !req.status || req.status === "pending");
     } else if (activeTab === "approved") {
       filtered = requests.filter((req) => req.status === "approved");
     } else if (activeTab === "rejected") {
@@ -220,23 +125,14 @@ const ManageRequests = () => {
     if (searchTerm) {
       filtered = filtered.filter(
         (req) =>
-          req.campgroundTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          req.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           req.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          req.userEmail?.toLowerCase().includes(searchTerm.toLowerCase())
+          req.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          req.place?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     return filtered;
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const getStatusBadge = (status) => {
@@ -250,7 +146,7 @@ const ManageRequests = () => {
 
   const filteredRequests = getFilteredRequests();
   const totalRequests = requests.length;
-  const pendingRequests = requests.filter((req) => req.status === "pending").length;
+  const pendingRequests = requests.filter((req) => !req.status || req.status === "pending").length;
   const approvedRequests = requests.filter((req) => req.status === "approved").length;
   const rejectedRequests = requests.filter((req) => req.status === "rejected").length;
 
@@ -271,7 +167,6 @@ const ManageRequests = () => {
       <AdminNavbar title="Manage Requests" />
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
           <div className="relative group">
             <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />
@@ -473,11 +368,12 @@ const ManageRequests = () => {
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">
                           Requested By
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">
+                          Location
+                        </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">
                           Price
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">Date</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">
                           Status
                         </th>
@@ -492,12 +388,8 @@ const ManageRequests = () => {
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden">
-                                {request.campgroundImage ? (
-                                  <img
-                                    src={request.campgroundImage}
-                                    alt={request.campgroundTitle}
-                                    className="w-full h-full object-cover"
-                                  />
+                                {request.image ? (
+                                  <img src={request.image} alt={request.title} className="w-full h-full object-cover" />
                                 ) : (
                                   <svg className="w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path
@@ -510,33 +402,31 @@ const ManageRequests = () => {
                                 )}
                               </div>
                               <div>
-                                <p className="text-base font-medium text-white">{request.campgroundTitle}</p>
-                                <p className="text-sm text-white/50 truncate max-w-[200px]">{request.campgroundDescription}</p>
+                                <p className="text-base font-medium text-white">{request.title}</p>
+                                <p className="text-sm text-white/50 truncate max-w-[200px]">{request.description}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-4">
                             <div>
                               <p className="text-base font-medium text-white">{request.username}</p>
-                              <p className="text-sm text-white/50">{request.userEmail}</p>
+                              <p className="text-sm text-white/50">{request.email}</p>
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="text-base text-white/70">{request.campgroundType}</span>
+                            <span className="text-base text-white/70 truncate max-w-[150px] block">{request.place}</span>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="text-base font-medium text-white">${request.campgroundPrice}/night</span>
+                            <span className="text-base font-medium text-white">${request.price}/night</span>
                           </td>
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-white/50">{formatDate(request.createdAt)}</span>
-                          </td>
+
                           <td className="px-4 py-4">
                             <span
                               className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(
-                                request.status
+                                request.status || "pending"
                               )}`}
                             >
-                              {request.status.toUpperCase()}
+                              {(request.status || "pending").toUpperCase()}
                             </span>
                           </td>
                           <td className="px-4 py-4">
@@ -565,7 +455,7 @@ const ManageRequests = () => {
                                 </svg>
                               </button>
 
-                              {request.status === "pending" && (
+                              {(!request.status || request.status === "pending") && (
                                 <>
                                   <button
                                     onClick={() => handleApproveRequest(request.id)}
@@ -616,128 +506,14 @@ const ManageRequests = () => {
       </main>
 
       {/* Details Modal */}
-      {showModal && selectedRequest && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="fixed inset-0 z-10 bg-black/50" onClick={() => setShowModal(false)} aria-hidden="true"></div>
-
-          <div className="fixed inset-0 z-20 flex items-center justify-center p-4">
-            <div className="relative bg-slate-800 border border-white/20 rounded-2xl text-left overflow-hidden shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Request Details</h3>
-                <button onClick={() => setShowModal(false)} className="text-white/40 hover:text-white transition-colors">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="p-6 space-y-6">
-                {/* Request Status Banner */}
-                <div
-                  className={`p-4 rounded-xl border ${
-                    selectedRequest.status === "pending"
-                      ? "bg-amber-500/10 border-amber-500/20"
-                      : selectedRequest.status === "approved"
-                      ? "bg-green-500/10 border-green-500/20"
-                      : "bg-red-500/10 border-red-500/20"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold border ${getStatusBadge(selectedRequest.status)}`}
-                    >
-                      {selectedRequest.status.toUpperCase()}
-                    </span>
-                    <span className="text-sm text-white/60">
-                      {selectedRequest.status === "pending"
-                        ? `Submitted on ${formatDate(selectedRequest.createdAt)}`
-                        : `Reviewed on ${formatDate(selectedRequest.reviewedAt)}`}
-                    </span>
-                  </div>
-                  {selectedRequest.status === "rejected" && selectedRequest.rejectionReason && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                      <p className="text-xs font-semibold text-white/40 uppercase mb-1">Rejection Reason</p>
-                      <p className="text-sm text-white/70">{selectedRequest.rejectionReason}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Campground Details */}
-                <div>
-                  <h4 className="text-xs font-semibold text-white/40 uppercase mb-3">Campground Information</h4>
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-                    <div>
-                      <h5 className="text-xl font-bold text-white">{selectedRequest.campgroundTitle}</h5>
-                      <p className="text-sm text-white/50">{selectedRequest.campgroundType}</p>
-                    </div>
-                    <p className="text-white/70">{selectedRequest.campgroundDescription}</p>
-                    <div className="flex items-center gap-4 pt-2 border-t border-white/10">
-                      <div>
-                        <p className="text-xs text-white/40">Price per night</p>
-                        <p className="text-lg font-bold text-white">${selectedRequest.campgroundPrice}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Requester Details */}
-                <div>
-                  <h4 className="text-xs font-semibold text-white/40 uppercase mb-3">Requested By</h4>
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-blue-500/20 border border-blue-400/30 rounded-full flex items-center justify-center">
-                        <span className="text-lg font-semibold text-blue-400">
-                          {selectedRequest.username?.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-base font-medium text-white">{selectedRequest.username}</p>
-                        <p className="text-sm text-white/50">{selectedRequest.userEmail}</p>
-                      </div>
-                    </div>
-                    {selectedRequest.message && (
-                      <div className="mt-4 pt-3 border-t border-white/10">
-                        <p className="text-xs font-semibold text-white/40 uppercase mb-1">Message</p>
-                        <p className="text-sm text-white/70 italic">"{selectedRequest.message}"</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                {selectedRequest.status === "pending" && (
-                  <div className="pt-4 border-t border-white/10 flex gap-3">
-                    <button
-                      onClick={() => {
-                        handleApproveRequest(selectedRequest.id);
-                        setShowModal(false);
-                      }}
-                      className="flex-1 px-4 py-2.5 bg-green-500/20 border border-green-500/30 text-green-300 rounded-xl font-medium transition-colors hover:bg-green-500/30 flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Approve Request
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowModal(false);
-                        openRejectModal(selectedRequest);
-                      }}
-                      className="flex-1 px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl font-medium transition-colors hover:bg-red-500/30 flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      Reject Request
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <RequestDetailsModal
+        request={selectedRequest}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onApprove={handleApproveRequest}
+        onReject={openRejectModal}
+        getStatusBadge={getStatusBadge}
+      />
 
       {/* Rejection Modal */}
       {showRejectModal && rejectingRequest && (
@@ -785,7 +561,7 @@ const ManageRequests = () => {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">Rejecting: {rejectingRequest.campgroundTitle}</p>
+                    <p className="text-sm font-medium text-white">Rejecting: {rejectingRequest.title}</p>
                     <p className="text-xs text-white/50">Requested by {rejectingRequest.username}</p>
                   </div>
                 </div>

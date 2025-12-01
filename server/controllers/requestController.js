@@ -1,6 +1,6 @@
 import { getDBConnection } from "../db/config.js";
-import { approveRequestQuery, getAllRequestsQuery } from "../models/request.js";
-import { createApprovalNotificationQuery } from "../models/notifications.js";
+import { approveRequestQuery, getAllRequestsQuery, rejectRequestQuery } from "../models/request.js";
+import { createApprovalNotificationQuery, createRejectNotificationQuery } from "../models/notifications.js";
 
 export const approveCampgroundRequest = async (req, res) => {
   const connection = await getDBConnection();
@@ -11,7 +11,7 @@ export const approveCampgroundRequest = async (req, res) => {
   try {
     await connection.beginTransaction();
     const { updatedCampground, updatedRequest } = await approveRequestQuery(connection, { requestId });
-    console.log(updatedCampground, updatedRequest);
+    // console.log(updatedCampground, updatedRequest);
     const { newNotification, approvalNotification } = await createApprovalNotificationQuery(connection, {
       requestId,
       userId: updatedRequest.requestedBy,
@@ -23,6 +23,33 @@ export const approveCampgroundRequest = async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const rejectCampgroundRequest = async (req, res) => {
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "DB Connection Error" });
+  }
+  const { requestId } = req.params;
+  try {
+    await connection.beginTransaction();
+    const { updatedCampground, updatedRequest } = await rejectRequestQuery(connection, { requestId });
+    // console.log(updatedCampground, updatedRequest);
+    const { newNotification, rejectNotification } = await createRejectNotificationQuery(connection, {
+      requestId,
+      userId: updatedRequest?.requestedBy,
+      content: req.body?.content,
+    });
+    await connection.commit();
+    return res
+      .status(201)
+      .json({ success: true, data: { updatedCampground, updatedRequest, newNotification, rejectNotification } });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ success: false, message: err?.message || "An Error Occured" });
   } finally {
     connection.release();
   }

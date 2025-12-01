@@ -1,25 +1,30 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import useAuthContext from "../../hooks/useAuthContext";
 import { BACKEND_URL } from "../../../config";
-import Navbar from "../../components/Navbar";
 import toast from "react-hot-toast";
+import AdminNavbar from "../../components/AdminNavbar";
 
 const ManageCampgrounds = () => {
-  const { state, dispatch } = useAuthContext();
+  const { state } = useAuthContext();
   const navigate = useNavigate();
   const [campgrounds, setCampgrounds] = useState([]);
-  const [activeTab, setActiveTab] = useState("all"); // all, pending, approved
+  const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCampground, setSelectedCampground] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionContent, setRejectionContent] = useState("");
+  const [rejectingCampground, setRejectingCampground] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchCampgrounds();
   }, []);
 
   const fetchCampgrounds = async () => {
+    setIsLoading(true);
     try {
       const response = await fetch(`${BACKEND_URL}/admin/campgrounds`, {
         headers: {
@@ -27,13 +32,14 @@ const ManageCampgrounds = () => {
         },
       });
       const data = await response.json();
-      console.log("Fetched campgrounds:", data);
       if (data.success) {
         setCampgrounds(data.data || []);
       }
     } catch (error) {
       console.error("Error fetching campgrounds:", error);
       toast.error("Failed to load campgrounds");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -66,8 +72,49 @@ const ManageCampgrounds = () => {
     }
   };
 
-  const handleRejectCampground = async (campgroundId) => {
-    // to be implemented along with backend
+  const handleRejectCampground = async () => {
+    if (!rejectingCampground) return;
+    if (!rejectionContent.trim()) {
+      toast.error("Please provide a reason for rejection");
+      return;
+    }
+    try {
+      const request = await fetch(`${BACKEND_URL}/admin/get-campground-request/${rejectingCampground.id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${state.token}`,
+        },
+      });
+      const temp = await request.json();
+      const requestId = temp.data.id;
+      const response = await fetch(`${BACKEND_URL}/requests/reject-request/${requestId}`, {
+        method: "POST",
+        body: JSON.stringify({ content: rejectionContent }),
+        headers: {
+          Authorization: `Bearer ${state?.token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Campground Request Rejected");
+        setShowRejectModal(false);
+        setRejectionContent("");
+        setRejectingCampground(null);
+        fetchCampgrounds();
+      } else {
+        toast.error(data.message || "Failed to Reject Campground");
+      }
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to reject campground");
+    }
+  };
+
+  const openRejectModal = (campground) => {
+    setRejectingCampground(campground);
+    setRejectionContent("");
+    setShowRejectModal(true);
   };
 
   const handleDeleteCampground = async (campgroundId) => {
@@ -94,20 +141,38 @@ const ManageCampgrounds = () => {
   };
 
   const filteredCampgrounds = getFilteredCampgrounds();
+  const totalCampgrounds = campgrounds.length;
+  const pendingCampgrounds = campgrounds.filter((cg) => !cg.isApproved).length;
+  const approvedCampgrounds = campgrounds.filter((cg) => cg.isApproved).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar variant="solid" />
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-            <div className="flex items-center justify-between">
+    <div
+      className="relative min-h-screen overflow-hidden bg-slate-950 font-sans"
+      style={{
+        backgroundImage: "url('/assets/camping-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
+      <div className="pointer-events-none absolute -top-48 left-10 h-96 w-96 rounded-full bg-emerald-400/25 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-160px] right-[-40px] h-[420px] w-[420px] rounded-full bg-cyan-500/25 blur-3xl" />
+
+      <AdminNavbar title="Campground Management" />
+
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
+          <div className="relative group">
+            <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl p-5 flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Total Campgrounds</p>
-                <p className="text-3xl font-semibold text-gray-900 mt-2">{campgrounds.length}</p>
+                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Total Campgrounds</p>
+                <p className="text-3xl font-bold text-white mt-1">{totalCampgrounds}</p>
               </div>
-              <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-green-500/20 border border-green-400/30 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -119,14 +184,15 @@ const ManageCampgrounds = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div className="relative group">
+            <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl p-5 flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Pending Approval</p>
-                <p className="text-3xl font-semibold text-gray-900 mt-2">{campgrounds.filter((cg) => !cg.isApproved).length}</p>
+                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Pending Approval</p>
+                <p className="text-3xl font-bold text-white mt-1">{pendingCampgrounds}</p>
               </div>
-              <div className="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-amber-500/20 border border-amber-400/30 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -138,14 +204,15 @@ const ManageCampgrounds = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div className="relative group">
+            <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl p-5 flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Approved</p>
-                <p className="text-3xl font-semibold text-gray-900 mt-2">{campgrounds.filter((cg) => cg.isApproved).length}</p>
+                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Approved</p>
+                <p className="text-3xl font-bold text-white mt-1">{approvedCampgrounds}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-blue-500/20 border border-blue-400/30 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -157,14 +224,15 @@ const ManageCampgrounds = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div className="relative group">
+            <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl p-5 flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">Avg Rating</p>
-                <p className="text-3xl font-semibold text-gray-900 mt-2">0.0</p>
+                <p className="text-white/60 text-xs font-semibold uppercase tracking-wider">Avg Rating</p>
+                <p className="text-3xl font-bold text-white mt-1">0.0</p>
               </div>
-              <div className="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-yellow-500/20 border border-yellow-400/30 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -177,306 +245,453 @@ const ManageCampgrounds = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="border-b border-gray-200">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setActiveTab("all")}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === "all" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  All Campgrounds
-                </button>
-                <button
-                  onClick={() => setActiveTab("pending")}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === "pending" ? "bg-amber-50 text-amber-700" : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  Pending ({campgrounds.filter((cg) => !cg.isApproved).length})
-                </button>
-                <button
-                  onClick={() => setActiveTab("approved")}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === "approved" ? "bg-green-50 text-green-700" : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  Approved ({campgrounds.filter((cg) => cg.isApproved).length})
-                </button>
-              </div>
-            </div>
-
-            <div className="px-6 pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex-1 max-w-lg">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search campgrounds by name or location..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <svg
-                    className="w-5 h-5 text-gray-400 absolute left-3 top-2.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+        {/* Main Content Area */}
+        <div className="relative">
+          <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg" />
+          <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-2xl backdrop-blur-xl">
+            {/* Toolbar */}
+            <div className="border-b border-white/10 px-6 py-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Tabs */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setActiveTab("all")}
+                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                      activeTab === "all"
+                        ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                        : "text-white/60 hover:bg-white/10 border border-transparent"
+                    }`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
+                    All Campgrounds
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("pending")}
+                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                      activeTab === "pending"
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        : "text-white/60 hover:bg-white/10 border border-transparent"
+                    }`}
+                  >
+                    Pending ({pendingCampgrounds})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("approved")}
+                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                      activeTab === "approved"
+                        ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                        : "text-white/60 hover:bg-white/10 border border-transparent"
+                    }`}
+                  >
+                    Approved ({approvedCampgrounds})
+                  </button>
                 </div>
-              </div>
 
-              <button
-                onClick={() => navigate("/user/createcg")}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Campground
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6">
-            {filteredCampgrounds.length === 0 ? (
-              <div className="text-center py-20">
-                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
-                </svg>
-                <p className="text-gray-500 text-lg mb-2">No campgrounds found</p>
-                <p className="text-gray-400 text-sm">Try adjusting your search or filters</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCampgrounds.map((campground) => (
-                  <div
-                    key={campground.campgroundId}
-                    className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="h-48 bg-gray-200 relative">
-                      {campground.images[0] ? (
-                        <img src={campground.images[0]} alt={campground.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                      <div className="absolute top-3 right-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            campground.isApproved ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {campground.isApproved ? "APPROVED" : "PENDING"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{campground.title}</h3>
-                      <div className="flex items-center text-sm text-gray-500 mb-3">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        {campground.type || "Unknown Type"}
-                      </div>
-
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                        {campground.description || "No description available"}
-                      </p>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                        <span className="text-lg font-bold text-gray-900">${campground.price || 0}/night</span>
-
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedCampground(campground);
-                              setShowModal(true);
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View Details"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                              />
-                            </svg>
-                          </button>
-
-                          {!campground.isApproved && (
-                            <>
-                              <button
-                                onClick={() => handleApproveCampground(campground.id)}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                title="Approve"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => handleRejectCampground(campground.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Reject"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </>
-                          )}
-
-                          <button
-                            onClick={() => handleDeleteCampground(campground.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {showModal && selectedCampground && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Campground Details</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {selectedCampground.image_url && (
-                <img
-                  src={selectedCampground.image_url}
-                  alt={selectedCampground.title}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-              )}
-
-              <div>
-                <h4 className="text-2xl font-bold text-gray-900 mb-2">{selectedCampground.title}</h4>
-                <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1 max-w-md">
+                    <input
+                      type="text"
+                      placeholder="Search campgrounds..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                    />
+                    <svg
+                      className="w-4 h-4 text-white/40 absolute left-3.5 top-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    {selectedCampground.type || "Unknown Type"}
-                  </span>
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      selectedCampground.isApproved ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
-                    }`}
-                  >
-                    {selectedCampground.isApproved ? "APPROVED" : "PENDING"}
-                  </span>
-                </div>
-              </div>
+                  </div>
 
-              <div className="border-t border-gray-200 pt-4">
-                <h5 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Description</h5>
-                <p className="text-gray-700">{selectedCampground.description || "No description available"}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 border-t border-gray-200 pt-4">
-                <div>
-                  <h5 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Price</h5>
-                  <p className="text-2xl font-bold text-gray-900">${selectedCampground.price}/night</p>
-                </div>
-                <div>
-                  <h5 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Capacity</h5>
-                  <p className="text-2xl font-bold text-gray-900">{selectedCampground.capacity || 0} guests</p>
-                </div>
-              </div>
-
-              {!selectedCampground.isApproved && (
-                <div className="pt-4 border-t border-gray-200 flex gap-3">
                   <button
-                    onClick={() => {
-                      handleApproveCampground(selectedCampground.id);
-                      setShowModal(false);
-                    }}
-                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                    onClick={fetchCampgrounds}
+                    className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                    title="Refresh List"
                   >
-                    Approve Campground
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
                   </button>
+
                   <button
-                    onClick={() => {
-                      handleRejectCampground(selectedCampground.id);
-                      setShowModal(false);
-                    }}
-                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                    onClick={() => navigate("/user/createcg")}
+                    className="px-4 py-2.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 rounded-xl font-medium transition-colors hover:bg-emerald-500/30 flex items-center gap-2"
                   >
-                    Reject
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Campground
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+                </div>
+              ) : filteredCampgrounds.length === 0 ? (
+                <div className="text-center py-20">
+                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-white/50 text-base">No campgrounds found matching your criteria.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredCampgrounds.map((campground) => (
+                    <div
+                      key={campground.campgroundId}
+                      className="relative group rounded-2xl border border-white/10 bg-slate-900/50 overflow-hidden hover:border-white/20 transition-all"
+                    >
+                      <div className="h-48 bg-slate-800 relative">
+                        {campground.images?.[0] ? (
+                          <img src={campground.images[0]} alt={campground.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-16 h-16 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                        <div className="absolute top-3 right-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              campground.isApproved
+                                ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                                : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            }`}
+                          >
+                            {campground.isApproved ? "APPROVED" : "PENDING"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-4">
+                        <h3 className="text-lg font-semibold text-white mb-1">{campground.title}</h3>
+                        <div className="flex items-center text-sm text-white/50 mb-3">
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          {campground.type || "Unknown Type"}
+                        </div>
+
+                        <p className="text-sm text-white/60 mb-4 line-clamp-2">
+                          {campground.description || "No description available"}
+                        </p>
+
+                        <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                          <span className="text-lg font-bold text-white">${campground.price || 0}/night</span>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedCampground(campground);
+                                setShowModal(true);
+                              }}
+                              className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors"
+                              title="View Details"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                              </svg>
+                            </button>
+
+                            {!campground.isApproved && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveCampground(campground.id)}
+                                  className="p-2 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors"
+                                  title="Approve"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => openRejectModal(campground)}
+                                  className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                                  title="Reject"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+
+                            <button
+                              onClick={() => handleDeleteCampground(campground.id)}
+                              className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
+            </div>
+
+            {/* Footer */}
+            {filteredCampgrounds.length > 0 && (
+              <div className="border-t border-white/10 px-6 py-4 flex items-center justify-between">
+                <span className="text-sm text-white/50">
+                  Showing <span className="text-white font-medium">{filteredCampgrounds.length}</span> of{" "}
+                  <span className="text-white font-medium">{totalCampgrounds}</span> campgrounds
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* Modal */}
+      {showModal && selectedCampground && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 z-10 bg-black/50" onClick={() => setShowModal(false)} aria-hidden="true"></div>
+
+          <div className="fixed inset-0 z-20 flex items-center justify-center p-4">
+            <div className="relative bg-slate-800 border border-white/20 rounded-2xl text-left overflow-hidden shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Campground Details</h3>
+                <button onClick={() => setShowModal(false)} className="text-white/40 hover:text-white transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {selectedCampground.images?.[0] && (
+                  <img
+                    src={selectedCampground.images[0]}
+                    alt={selectedCampground.title}
+                    className="w-full h-64 object-cover rounded-xl"
+                  />
+                )}
+
+                <div>
+                  <h4 className="text-2xl font-bold text-white mb-2">{selectedCampground.title}</h4>
+                  <div className="flex items-center gap-4 text-sm text-white/50 mb-4">
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {selectedCampground.type || "Unknown Type"}
+                    </span>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        selectedCampground.isApproved
+                          ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                          : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      }`}
+                    >
+                      {selectedCampground.isApproved ? "APPROVED" : "PENDING"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border-t border-white/10 pt-4">
+                  <h5 className="text-xs font-semibold text-white/40 uppercase mb-2">Description</h5>
+                  <p className="text-white/70">{selectedCampground.description || "No description available"}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                    <label className="block text-xs font-semibold text-white/40 uppercase mb-1">Price</label>
+                    <p className="text-xl font-bold text-white">${selectedCampground.price}/night</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                    <label className="block text-xs font-semibold text-white/40 uppercase mb-1">Capacity</label>
+                    <p className="text-xl font-bold text-white">{selectedCampground.capacity || 0} guests</p>
+                  </div>
+                </div>
+
+                {!selectedCampground.isApproved && (
+                  <div className="pt-4 border-t border-white/10 flex gap-3">
+                    <button
+                      onClick={() => {
+                        handleApproveCampground(selectedCampground.id);
+                        setShowModal(false);
+                      }}
+                      className="flex-1 px-4 py-2 bg-green-500/20 border border-green-500/30 text-green-300 rounded-xl font-medium transition-colors hover:bg-green-500/30"
+                    >
+                      Approve Campground
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowModal(false);
+                        openRejectModal(selectedCampground);
+                      }}
+                      className="flex-1 px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl font-medium transition-colors hover:bg-red-500/30"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Modal */}
+      {showRejectModal && rejectingCampground && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="reject-modal-title" role="dialog" aria-modal="true">
+          <div
+            className="fixed inset-0 z-10 bg-black/50"
+            onClick={() => {
+              setShowRejectModal(false);
+              setRejectionContent("");
+              setRejectingCampground(null);
+            }}
+            aria-hidden="true"
+          ></div>
+
+          <div className="fixed inset-0 z-20 flex items-center justify-center p-4">
+            <div className="relative bg-slate-800 border border-white/20 rounded-2xl text-left overflow-hidden shadow-2xl w-full max-w-md">
+              <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white" id="reject-modal-title">
+                  Reject Campground
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setRejectionContent("");
+                    setRejectingCampground(null);
+                  }}
+                  className="text-white/40 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                  <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Rejecting: {rejectingCampground.title}</p>
+                    <p className="text-xs text-white/50">This action cannot be undone</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">
+                    Reason for Rejection <span className="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    value={rejectionContent}
+                    onChange={(e) => setRejectionContent(e.target.value)}
+                    placeholder="Please provide a detailed reason for rejecting this campground..."
+                    rows={4}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-transparent transition-all resize-none"
+                  />
+                  <p className="mt-1 text-xs text-white/40">This reason will be sent to the campground owner.</p>
+                </div>
+              </div>
+
+              <div className="bg-white/5 px-6 py-4 flex flex-row-reverse gap-3">
+                <button
+                  onClick={handleRejectCampground}
+                  disabled={!rejectionContent.trim()}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                    rejectionContent.trim()
+                      ? "bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
+                      : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Reject Campground
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setRejectionContent("");
+                    setRejectingCampground(null);
+                  }}
+                  className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl font-medium hover:bg-white/10 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>

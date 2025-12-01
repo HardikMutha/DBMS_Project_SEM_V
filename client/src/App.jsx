@@ -11,6 +11,7 @@ import ManageUsers from "./Pages/admin/ManageUsers";
 import ManageCampgrounds from "./Pages/admin/ManageCampgrounds";
 import ManageBookings from "./Pages/admin/ManageBookings";
 import ManageReviews from "./Pages/admin/ManageReviews";
+import ManageRequests from "./Pages/admin/ManageRequests";
 import BrowseCampgroundsPage from "./Pages/BrowseCampgrounds";
 import CampgroundBooking from "./Pages/CampgroundBooking";
 import ManageCampground from "./Pages/ManageCampground";
@@ -67,6 +68,10 @@ function App() {
           <Route
             path="/admin/manage-reviews"
             element={state?.isAuthenticated && state?.role === "admin" ? <ManageReviews /> : <Login />}
+          />
+          <Route
+            path="/admin/manage-requests"
+            element={state?.isAuthenticated && state?.role === "admin" ? <ManageRequests /> : <Login />}
           />
           <Route
             path="/user/dashboard"

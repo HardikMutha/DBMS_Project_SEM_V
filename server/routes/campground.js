@@ -5,7 +5,7 @@ import {
   createCampground,
   getCampgroundById,
   removeCampgroundFromFavourites,
-  getAllCampgrounds,
+  getAllApprovedCampgrounds,
 } from "../controllers/campgroundController.js";
 import { upload } from "../config/s3config.js";
 
@@ -30,10 +30,10 @@ router.post(
       return next();
     });
   },
-  createCampground,
+  createCampground
 );
 router.get("/get-campground/:id", getCampgroundById);
-router.get("/get-all-campgrounds", getAllCampgrounds);
+router.get("/get-all-campgrounds", getAllApprovedCampgrounds);
 router.post("/favourites/add", authenticateUser, addCampgroundToFavourite);
 router.delete("/favourites/delete", authenticateUser, removeCampgroundFromFavourites);
 

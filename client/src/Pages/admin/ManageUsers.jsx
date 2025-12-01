@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
 import useAuthContext from "../../hooks/useAuthContext";
 import { BACKEND_URL } from "../../../config";
 import toast from "react-hot-toast";
 import campingBg from "/assets/camping-bg.jpg";
+import AdminNavbar from "../../components/AdminNavbar";
 
 const ManageUsers = () => {
-  const { state, dispatch } = useAuthContext();
-  const navigate = useNavigate();
+  const { state } = useAuthContext();
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
@@ -72,12 +71,6 @@ const ManageUsers = () => {
     return matchesSearch && matchesRole;
   });
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    dispatch({ type: "LOGOUT" });
-    navigate("/login");
-  };
-
   const totalUsers = users.length;
   const regularUsers = users.filter((u) => u.role === "user").length;
   const adminUsers = users.filter((u) => u.role === "admin").length;
@@ -93,43 +86,9 @@ const ManageUsers = () => {
       <div className="pointer-events-none absolute -top-48 left-10 h-96 w-96 rounded-full bg-emerald-400/25 blur-3xl" />
       <div className="pointer-events-none absolute bottom-[-160px] right-[-40px] h-[420px] w-[420px] rounded-full bg-cyan-500/25 blur-3xl" />
 
-      <div className="z-10 border-b border-white/10 backdrop-blur-md shadow-lg sticky top-0">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate("/admin/dashboard")}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition-all shadow-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70 mb-1">
-                  Module
-                </span>
-                <h1 className="text-xl font-semibold text-white">User Management</h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="hidden md:block text-right">
-                <p className="text-sm font-medium text-white">{state.user?.username}</p>
-                <p className="text-xs text-white/70">{state.user?.email}</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-white text-sm font-medium hover:border-white/25 hover:bg-white/10 transition-all shadow-lg"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AdminNavbar title="User Management" />
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
           <div className="relative group">
             <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 opacity-80 blur-md transition-opacity group-hover:opacity-100" />

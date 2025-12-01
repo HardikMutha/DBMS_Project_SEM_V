@@ -33,3 +33,8 @@ export const updateNotificationsQuery = async (connection, { viewedNotifications
   ]);
   return result;
 };
+
+export const getNotificationsQuery = async (connection, { userId }) => {
+  const [notifications] = await connection.query(`SELECT id, content, viewed FROM Notifications WHERE userId = ?`, [userId]);
+  return notifications;
+}

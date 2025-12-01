@@ -17,7 +17,7 @@ const NotificationModal = ({ isOpen, onClose, notifications = [], userId, onNoti
       setUpdating(true);
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${BACKEND_URL}/api/notifications/update-viewed`, {
+        const response = await fetch(`${BACKEND_URL}/notifications/update-viewed`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

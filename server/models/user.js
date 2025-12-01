@@ -27,3 +27,8 @@ export const getAllUsers = async function (connection) {
   const [rows] = await connection.query("SELECT id, username, email, role FROM Users ORDER BY id ASC");
   return rows;
 };
+
+export const deleteUserQuery = async function (connection, id) {
+  const [rows] = await connection.query(`DELETE FROM Users WHERE id = ? AND role = "user"`, [id]);
+  return rows;
+};

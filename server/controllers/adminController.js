@@ -7,7 +7,7 @@ import {
   getPendingCampgroundRequests,
 } from "../models/campground.js";
 import { getImagesByCampgroundQuery } from "../models/images.js";
-import { getAllUsers, getUserCount } from "../models/user.js";
+import { deleteUserQuery, getAllUsers, getUserById, getUserCount } from "../models/user.js";
 
 export const getDashboardStats = async (req, res) => {
   const connection = await getDBConnection();
@@ -47,6 +47,34 @@ export const userManagement = async (req, res) => {
     console.error("Error fetching users:", error);
     await connection.rollback();
     return res.status(500).json({ success: false, message: "Error fetching users" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Database Connection Errors" });
+  }
+  try {
+    await connection.beginTransaction();
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "No user id provided" });
+    }
+    const user = await getUserById(connection, userId);
+    if (!user || user.role === "admin") {
+      return res.status(401).json({ success: false, message: "Invalid User Id " });
+    }
+
+    const response = await deleteUserQuery(connection, userId);
+    if (!response) throw new Error("Invalid Request");
+    await connection.commit();
+
+    return res.status(200).json({ success: true, message: "User Deleted Successfully" });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });
   } finally {
     connection.release();
   }

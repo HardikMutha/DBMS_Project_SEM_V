@@ -47,3 +47,12 @@ export const upload = multer({
     files: 10,
   },
 });
+
+export const deleteImagefromS3 = async (imageURL) => {
+  try {
+    console.log(imageURL);
+  } catch (err) {
+    console.error("An Error Occured");
+    throw err;
+  }
+};

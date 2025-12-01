@@ -1,7 +1,7 @@
 export const createCampgroundQuery = async function (connection, { title, description, capacity, type, locId, ownerId, price }) {
   const [result] = await connection.query(
     `INSERT INTO Campground (title, description, capacity, type, locId, ownerId, price,isApproved ) VALUES (?,?,?,?,?,?,?,?)`,
-    [title, description, capacity, type, locId, ownerId, price, false],
+    [title, description, capacity, type, locId, ownerId, price, false]
   );
   return result;
 };
@@ -34,7 +34,7 @@ export const getUserFavouritesQuery = async function (connection, id) {
 
 export const getOwnerInfoQuery = async function (connection, { campgroundId }) {
   const [rows] = await connection.query(
-    `SELECT u.username,u.email FROM Users AS u LEFT JOIN Campground AS cg ON u.id = ${campgroundId}`,
+    `SELECT u.username,u.email FROM Users AS u LEFT JOIN Campground AS cg ON u.id = ${campgroundId}`
   );
   return rows[0];
 };
@@ -46,7 +46,7 @@ export const getAllApprovedCampgroundsQuery = async function (connection) {
      FROM Campground c 
      LEFT JOIN Location l ON c.locId = l.id 
      WHERE c.isApproved = true 
-     ORDER BY c.id DESC`,
+     ORDER BY c.id DESC`
   );
   return rows;
 };
@@ -57,16 +57,18 @@ export const getCampgroundCount = async function (connection) {
 };
 
 export const getPendingCampgroundRequests = async function (connection) {
-  const [rows] = await connection.query("SELECT u.username, cg.title FROM Users u JOIN Campground cg ON u.id = cg.ownerId JOIN Request r ON cg.id = r.campgroundId WHERE r.status = 'pending' ORDER BY r.id DESC");
+  const [rows] = await connection.query(
+    "SELECT u.username, cg.title FROM Users u JOIN Campground cg ON u.id = cg.ownerId JOIN Request r ON cg.id = r.campgroundId WHERE r.status = 'pending' ORDER BY r.id DESC"
+  );
   return rows;
 };
 
-export const getAllCampgrounds = async function(connection) {
+export const getAllCampgrounds = async function (connection) {
   const [rows] = await connection.query("SELECT * FROM Campground");
   return rows;
 };
 
-export const getCampgroundRequestById = async function(connection, campgroundId) {
+export const getCampgroundRequestById = async function (connection, campgroundId) {
   const [rows] = await connection.query(`SELECT * FROM Request WHERE campgroundId = ?`, [campgroundId]);
   return rows;
 };

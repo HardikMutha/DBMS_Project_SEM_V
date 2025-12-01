@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import AllCampgrounds from "../components/AllCampgrounds";
 import campingBg from "/assets/camping-bg.jpg";
 
-const BrowseCampgroundsPage = () => {
+const BrowseCampgrounds = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,4 +116,4 @@ const BrowseCampgroundsPage = () => {
   );
 };
 
-export default BrowseCampgroundsPage;
+export default BrowseCampgrounds;

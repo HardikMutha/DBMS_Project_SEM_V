@@ -139,7 +139,7 @@ export const removeCampgroundFromFavourites = async (req, res) => {
   }
 };
 
-export const getAllCampgrounds = async (req, res) => {
+export const getAllApprovedCampgrounds = async (req, res) => {
   const connection = await getDBConnection();
   if (!connection) {
     return res.status(500).json({ success: false, message: "DB Connection Error" });

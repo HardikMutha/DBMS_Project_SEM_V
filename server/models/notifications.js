@@ -10,6 +10,18 @@ export const createApprovalNotificationQuery = async (connection, { requestId, u
   return { newNotification, approvalNotification };
 };
 
+export const createRejectNotificationQuery = async (connection, { requestId, userId, content }) => {
+  const [newNotification] = await connection.query(`INSERT INTO Notifications (content,userId) VALUES (?, ?)`, [
+    content + `\n Your request ${requestId} has been rejected`,
+    userId,
+  ]);
+  const [rejectNotification] = await connection.query(`INSERT INTO ApprovalNotif (notifId,requestId) VALUES (?, ?)`, [
+    newNotification.insertId,
+    requestId,
+  ]);
+  return { newNotification, rejectNotification };
+};
+
 export const createBookingNotificationQuery = async (connection, { bookingId, userId }) => {
   const [result] = await connection.query(`SELECT cg.title FROM Campground as cg
   LEFT JOIN Booking as bk ON cg.id = bk.campgroundId

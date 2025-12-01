@@ -35,7 +35,7 @@ router.post(
 router.get("/get-campground/:id", getCampgroundById);
 router.get("/get-all-campgrounds", getAllApprovedCampgrounds);
 router.post("/favourites/add", authenticateUser, addCampgroundToFavourite);
-router.delete("/favourites/delete", authenticateUser, removeCampgroundFromFavourites);
+router.delete("/favourites/remove", authenticateUser, removeCampgroundFromFavourites);
 
 router.post("/upload", upload.array("images", 10), (req, res) => {
   console.log(req.files);

@@ -1,13 +1,38 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router";
 import Navbar from "../components/Navbar";
 import AllCampgrounds from "../components/AllCampgrounds";
+import NotificationModal from "../components/NotificationModal";
+import useAuthContext from "../hooks/useAuthContext";
+import { BACKEND_URL } from "../../config";
 import campingBg from "/assets/camping-bg.jpg";
+
+const dummyNotifications = [
+  {
+    id: "sample-1",
+    from: "CampGrounds Team",
+    content: "Welcome to CampGrounds! Discover curated destinations and plan your next adventure.",
+    createdAt: new Date().toISOString(),
+    viewed: false,
+  },
+  {
+    id: "sample-2",
+    from: "Host Support",
+    content: "Remember to complete your profile to unlock personalised recommendations.",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    viewed: true,
+  },
+];
 
 const BrowseCampgrounds = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { state } = useAuthContext();
   const [searchTerm, setSearchTerm] = useState("");
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [, setLoadingNotifications] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -25,9 +50,87 @@ const BrowseCampgrounds = () => {
     }
   };
 
+  const fetchNotifications = useCallback(async () => {
+    if (!state?.isAuthenticated) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    setLoadingNotifications(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setNotifications(dummyNotifications);
+        const unread = dummyNotifications.filter((notif) => !notif.viewed).length;
+        setUnreadCount(unread);
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/notifications`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log(response);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const fetchedNotifications = data.data || [];
+          // If no notifications from API, use dummy data for testing
+          if (fetchedNotifications.length === 0) {
+            setNotifications(dummyNotifications);
+            const unread = dummyNotifications.filter((notif) => !notif.viewed).length;
+            setUnreadCount(unread);
+          } else {
+            setNotifications(fetchedNotifications);
+            const unread = fetchedNotifications.filter((notif) => !notif.viewed).length;
+            setUnreadCount(unread);
+          }
+        }
+      } else {
+        // Fallback to dummy data if API fails
+        setNotifications(dummyNotifications);
+        const unread = dummyNotifications.filter((notif) => !notif.viewed).length;
+        setUnreadCount(unread);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      // Use dummy data on error for testing
+      setNotifications(dummyNotifications);
+      const unread = dummyNotifications.filter((notif) => !notif.viewed).length;
+      setUnreadCount(unread);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }, [state?.isAuthenticated]);
+
+  useEffect(() => {
+    fetchNotifications();
+    // Optionally refresh notifications periodically
+    const interval = setInterval(fetchNotifications, 30000); // Every 30 seconds
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  const handleNotificationClick = () => {
+    if (!state?.isAuthenticated) {
+      return;
+    }
+    setShowNotificationModal(true);
+    fetchNotifications();
+  };
+
+  const handleNotificationUpdate = (notificationId) => {
+    // Update local state when notification is marked as read
+    setNotifications((prev) => prev.map((notif) => (notif.id === notificationId ? { ...notif, viewed: true } : notif)));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+  };
+
   return (
     <div className="relative min-h-screen bg-slate-950 text-white">
-      <Navbar variant="transparent" />
+      <Navbar variant="transparent" notificationCount={unreadCount} onNotificationClick={handleNotificationClick} />
 
       <main className="pt-28 pb-16">
         <section
@@ -112,6 +215,15 @@ const BrowseCampgrounds = () => {
           </div>
         </section>
       </main>
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        notifications={notifications}
+        userId={state?.user?.id}
+        onNotificationUpdate={handleNotificationUpdate}
+      />
     </div>
   );
 };

@@ -91,7 +91,7 @@ export const addCampgroundToFavourite = async (req, res) => {
     return res.status(500).json({ success: false, message: "DB Connection Error" });
   }
   try {
-    const campground = await getCampgroundByIdQuery(connection, campgroundId);
+    const campground = await getCampgroundByIdQuery(connection, { campgroundId });
     if (!campground || !campground?.isApproved) {
       return res.status(404).json({ success: false, message: "Campground not found" });
     }
@@ -122,7 +122,7 @@ export const removeCampgroundFromFavourites = async (req, res) => {
     return res.status(500).json({ success: false, message: "DB Connection Error" });
   }
   try {
-    const campground = await getCampgroundByIdQuery(connection, campgroundId);
+    const campground = await getCampgroundByIdQuery(connection, { campgroundId });
     if (!campground || !campground?.isApproved) {
       return res.status(404).json({ success: false, message: "Campground not found" });
     }

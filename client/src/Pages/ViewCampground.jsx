@@ -44,7 +44,7 @@ const ViewCampground = () => {
 
   const handleAddToFavorites = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = state?.token;
       if (!token) {
         toast.error("Please sign in to save this campground");
         navigate("/login");
@@ -60,6 +60,7 @@ const ViewCampground = () => {
       });
 
       const data = await response.json();
+      console.log(data);
       if (response.ok) {
         setIsFavorite(true);
         toast.success("Added to favorites!");
@@ -74,13 +75,13 @@ const ViewCampground = () => {
 
   const handleRemoveFromFavorites = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = state?.token;
       if (!token) {
         toast.error("Please sign in to manage your favorites");
         navigate("/login");
         return;
       }
-      const response = await fetch(`${BACKEND_URL}/campground/favourites/delete`, {
+      const response = await fetch(`${BACKEND_URL}/campground/favourites/remove`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

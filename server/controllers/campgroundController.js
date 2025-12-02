@@ -7,7 +7,7 @@ import {
   getAllApprovedCampgroundsQuery,
 } from "../models/campground.js";
 import { getCampgroundReviewsQuery } from "../models/review.js";
-import { createLocationQuery } from "../models/location.js";
+import { createLocationQuery, getLocationById } from "../models/location.js";
 import { addImagesQuery, getImagesByCampgroundQuery } from "../models/images.js";
 import { createRequestQuery } from "../models/request.js";
 import { getDBConnection } from "../db/config.js";
@@ -67,8 +67,16 @@ export const getCampgroundById = async (req, res) => {
     const allReviews = await getCampgroundReviewsQuery(connection, { campgroundId: campground?.id });
     const imagesData = await getImagesByCampgroundQuery(connection, { campgroundId: campground?.id });
     const images = imagesData.map((image) => image?.imgUrl);
+    const location = campground?.locId ? await getLocationById(connection, campground.locId) : null;
+    const campgroundPayload = {
+      ...campground,
+      place: location?.place ?? null,
+      latitude: location?.latitude ?? null,
+      longitude: location?.longitude ?? null,
+      images,
+    };
 
-    return res.status(200).json({ success: true, data: { campground: { ...campground, images }, ownerInfo, allReviews } });
+    return res.status(200).json({ success: true, data: { campground: campgroundPayload, ownerInfo, allReviews } });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });

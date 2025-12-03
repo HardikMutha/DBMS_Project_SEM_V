@@ -61,6 +61,7 @@ const CampgroundBooking = () => {
   const [bookingForm, setBookingForm] = useState({ checkInDate: "", checkOutDate: "", guestCount: 1 });
   const [bookingError, setBookingError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableCapacity, setAvailableCapacity] = useState(null);
 
   const isAuthenticated = Boolean(state?.isAuthenticated);
   const userId = state?.user?.id ? Number(state.user.id) : null;
@@ -82,6 +83,37 @@ const CampgroundBooking = () => {
 
   const isOwner = Boolean(userId && campground?.ownerId && Number(campground.ownerId) === userId);
   const canSubmitBooking = isAuthenticated && !isOwner && nights > 0 && !isSubmitting;
+  const fetchAvailableCapacity = async (checkIn, checkOut) => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setAvailableCapacity(null);
+          return;
+        }
+        const response = await fetch(`${BACKEND_URL}/campground/get-available-capacity/${id}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              checkInDate: checkIn,
+              checkOutDate: checkOut,
+            }),
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Unable to load campground capacity");
+        }
+        const data = await response.json();
+        if (data?.success && data?.data?.availableCapacity != null) {
+          setAvailableCapacity(data.data.availableCapacity);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
 
   useEffect(() => {
     const fetchCampground = async () => {
@@ -114,6 +146,7 @@ const CampgroundBooking = () => {
       const defaultCheckOut = formatDateForInput(addDays(today, 2));
       setBookingForm({ checkInDate: defaultCheckIn, checkOutDate: defaultCheckOut, guestCount: 1 });
       setBookingError("");
+      fetchAvailableCapacity(defaultCheckIn, defaultCheckOut);
     }
   }, [campground]);
 
@@ -130,6 +163,9 @@ const CampgroundBooking = () => {
       }
       return nextState;
     });
+    if (field === "checkOutDate") {
+      fetchAvailableCapacity(bookingForm.checkInDate, value);
+    }
     setBookingError("");
   };
 
@@ -193,6 +229,7 @@ const CampgroundBooking = () => {
         body: JSON.stringify({
           checkInDate: bookingForm.checkInDate,
           checkOutDate: bookingForm.checkOutDate,
+          guestCount: bookingForm.guestCount,
           amount: nightlyRate,
           guestCount: bookingForm.guestCount,
         }),
@@ -347,6 +384,34 @@ const CampgroundBooking = () => {
                         value={bookingForm.checkOutDate}
                         min={minCheckOutDate}
                         onChange={handleDateChange("checkOutDate")}
+                        className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 transition focus:border-[#164E63] focus:outline-none focus:ring-2 focus:ring-[#164E63]/20"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-2 text-sm font-medium text-slate-600">
+                      <span>Available capacity</span>
+                      <input
+                        type="text"
+                        value={availableCapacity ? `${availableCapacity} guests` : campground.capacity ? `${campground.capacity} guests` : "N/A"}
+                        disabled
+                        className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-500"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-2 text-sm font-medium text-slate-600">
+                      <span>Number of guests</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={campground.capacity || 1}
+                        value={bookingForm.guestCount}
+                        onChange={(e) =>
+                          setBookingForm((prev) => ({
+                            ...prev,
+                            guestCount: Math.min(
+                              Math.max(1, Number(e.target.value) || 1),
+                              availableCapacity || 1
+                            ),
+                          }))
+                        }
                         className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 transition focus:border-[#164E63] focus:outline-none focus:ring-2 focus:ring-[#164E63]/20"
                       />
                     </label>

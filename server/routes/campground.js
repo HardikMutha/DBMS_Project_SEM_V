@@ -7,6 +7,7 @@ import {
   removeCampgroundFromFavourites,
   getAllApprovedCampgrounds,
   updateCampgroundDetails,
+  getAvailableCapacity,
 } from "../controllers/campgroundController.js";
 import { upload } from "../config/s3config.js";
 
@@ -39,6 +40,7 @@ router.put("/update-campground/:id", authenticateUser, updateCampgroundDetails);
 router.delete("/delete-campground/:id", authenticateAdmin);
 router.post("/favourites/add", authenticateUser, addCampgroundToFavourite);
 router.delete("/favourites/remove", authenticateUser, removeCampgroundFromFavourites);
+router.post("/get-available-capacity/:campgroundId", authenticateUser, getAvailableCapacity);
 
 router.post("/upload", upload.array("images", 10), (req, res) => {
   console.log(req.files);

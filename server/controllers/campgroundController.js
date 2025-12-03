@@ -12,6 +12,7 @@ import { createLocationQuery, getLocationById, updateLocationQuery } from "../mo
 import { addImagesQuery, getImagesByCampgroundQuery } from "../models/images.js";
 import { createRequestQuery } from "../models/request.js";
 import { getDBConnection } from "../db/config.js";
+import { getBookingCount, getBookingsByCampgroundQuery, getBookingsByCheckInOutDateIdQuery } from "../models/booking.js";
 
 export const createCampground = async (req, res) => {
   const connection = await getDBConnection();
@@ -322,3 +323,36 @@ export const getAllApprovedCampgrounds = async (req, res) => {
     connection.release();
   }
 };
+
+export const getAvailableCapacity = async (req, res) => {
+  const { campgroundId } = req.params;
+  const connection = await getDBConnection();
+  const { checkInDate, checkOutDate } = req.body;
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+  try {
+    await connection.beginTransaction();
+    const campground = await getCampgroundByIdQuery(connection, { campgroundId });
+    if (!campground) {
+      return res.status(404).json({ success: false, message: "Campground not found" });
+    }
+    const bookings = await getBookingsByCheckInOutDateIdQuery(connection, { campgroundId, checkInDate, checkOutDate });
+    if (!bookings || bookings.length === 0) {
+      return res.status(200).json({ success: true, data: { availableCapacity: campground.capacity } });
+    }
+    let bookedCount = 0;
+    bookings.forEach((booking) => {
+      bookedCount += booking.guestCount;
+    });
+
+    const availableCount = campground.capacity - bookedCount;
+    return res.status(200).json({ success: true, data: { availableCapacity: availableCount } });
+  } catch (error) {
+    connection.rollback();
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  } finally {
+    connection.release();
+  }
+}

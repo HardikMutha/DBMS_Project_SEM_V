@@ -42,6 +42,7 @@ export const createBooking = async (req, res) => {
       campgroundId: campground?.id,
       checkInDate,
       checkOutDate,
+      guestCount,
       amount: amountToBePaid,
       guestCount: guestCount || 4,
     });
@@ -292,11 +293,11 @@ export const cancelUserBooking = async (req, res) => {
 
   try {
     await connection.beginTransaction();
-    
+
     // First verify the booking belongs to the user
     const userBookings = await getBookingsByUserId(connection, { userId });
     const booking = userBookings.find((b) => b.booking_id === Number(bookingId));
-    
+
     if (!booking) {
       await connection.rollback();
       return res.status(403).json({ success: false, message: "You can only cancel your own bookings" });

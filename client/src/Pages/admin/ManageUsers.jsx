@@ -41,12 +41,12 @@ const ManageUsers = () => {
 
   const handleDeleteUser = async (userId) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
-
     try {
       const response = await fetch(`${BACKEND_URL}/admin/delete-user`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${state.token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ userId: userId }),
       });

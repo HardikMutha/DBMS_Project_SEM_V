@@ -16,3 +16,8 @@ export const getLocationById = async function (connection, id) {
   const [rows] = await connection.query(`SELECT * FROM Location WHERE id =?`, id);
   return rows[0];
 };
+
+export const updateLocationQuery = async function (connection, { locationId, place }) {
+  const [result] = await connection.query(`UPDATE Location SET place = ? WHERE id = ?`, [place, locationId]);
+  return result;
+};

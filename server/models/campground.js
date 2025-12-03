@@ -39,6 +39,19 @@ export const getOwnerInfoQuery = async function (connection, { campgroundId }) {
   return rows[0];
 };
 
+export const updateCampgroundDetailsQuery = async function (
+  connection,
+  { campgroundId, title, description, capacity, type, price }
+) {
+  const [result] = await connection.query(
+    `UPDATE Campground
+     SET title = ?, description = ?, capacity = ?, type = ?, price = ?
+     WHERE id = ?`,
+    [title, description, capacity, type, price, campgroundId]
+  );
+  return result;
+};
+
 export const getAllApprovedCampgroundsQuery = async function (connection) {
   const [rows] = await connection.query(
     `SELECT c.*, l.place, l.latitude, l.longitude, 

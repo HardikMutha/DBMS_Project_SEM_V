@@ -157,16 +157,18 @@ export const updateCampgroundDetails = async (req, res) => {
           const requestedLongitude = wantsLongitudeUpdate ? Number.parseFloat(longitude) : numericExistingLongitude;
 
           if (
-            (numericExistingLatitude !== null && !Number.isNaN(numericExistingLatitude) && requestedLatitude !== numericExistingLatitude) ||
-            (numericExistingLongitude !== null && !Number.isNaN(numericExistingLongitude) && requestedLongitude !== numericExistingLongitude)
+            (numericExistingLatitude !== null &&
+              !Number.isNaN(numericExistingLatitude) &&
+              requestedLatitude !== numericExistingLatitude) ||
+            (numericExistingLongitude !== null &&
+              !Number.isNaN(numericExistingLongitude) &&
+              requestedLongitude !== numericExistingLongitude)
           ) {
             await connection.rollback();
-            return res
-              .status(400)
-              .json({
-                success: false,
-                message: "Updating coordinates is not allowed. Please contact support for assistance.",
-              });
+            return res.status(400).json({
+              success: false,
+              message: "Updating coordinates is not allowed. Please contact support for assistance.",
+            });
           }
         }
 
@@ -234,6 +236,15 @@ export const updateCampgroundDetails = async (req, res) => {
     connection.release();
   }
 };
+
+export const deleteCampground = async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, message: "Campground id Not provided" });
+  }
+  return res.status(200).json({ success: true, message: "GG" });
+};
+
 export const addCampgroundToFavourite = async (req, res) => {
   const userId = req?.user?.id;
   const { campgroundId } = req.body;

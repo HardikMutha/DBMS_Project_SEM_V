@@ -1,6 +1,21 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { MapPin, Users, Tent, DollarSign, Share2, Heart, ArrowLeft, Star, Check, Navigation, Clock, Shield } from "lucide-react";
+import {
+  MapPin,
+  Users,
+  Tent,
+  DollarSign,
+  Share2,
+  Heart,
+  ArrowLeft,
+  Star,
+  Check,
+  Navigation,
+  Clock,
+  Shield,
+  Send,
+  Loader2,
+} from "lucide-react";
 import { BACKEND_URL } from "../../config";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
@@ -22,6 +37,11 @@ const ViewCampground = () => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
+
+  // Review form state
+  const [reviewForm, setReviewForm] = useState({ content: "", rating: 5 });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [hoverRating, setHoverRating] = useState(0);
 
   const initializeMap = useCallback(() => {
     if (typeof window === "undefined") {
@@ -48,12 +68,10 @@ const ViewCampground = () => {
         scrollWheelZoom: true,
       }).setView([lat, lng], 12);
 
-      window.L
-        .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
-          attribution: "&copy; OpenStreetMap contributors",
-        })
-        .addTo(map);
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
 
       markerRef.current = window.L.marker([lat, lng]).addTo(map);
 
@@ -116,6 +134,22 @@ const ViewCampground = () => {
     }
   }, []);
 
+  const fetchReviews = useCallback(async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/review/get-all-reviews/${id}`);
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message);
+      }
+      console.log(data?.data);
+      setReviews(data?.data);
+    } catch (err) {
+      toast.error(err?.message || "Error Fetching Reviews");
+      console.error(err);
+      setReviews([]);
+    }
+  }, [id]);
+
   const fetchCampgroundDetails = useCallback(async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/campground/get-campground/${id}`);
@@ -127,7 +161,6 @@ const ViewCampground = () => {
       const data = await response.json();
       setCampground(data?.data?.campground);
       setOwnerInfo(data?.data?.ownerInfo);
-      setReviews(data?.data?.allReviews || []);
     } catch (err) {
       toast.error("Error loading campground details");
       console.error(err);
@@ -139,7 +172,8 @@ const ViewCampground = () => {
 
   useEffect(() => {
     fetchCampgroundDetails();
-  }, [fetchCampgroundDetails]);
+    fetchReviews();
+  }, [fetchCampgroundDetails, fetchReviews]);
 
   const handleAddToFavorites = async () => {
     try {
@@ -230,6 +264,65 @@ const ViewCampground = () => {
     }
   };
 
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+
+    if (!state?.isAuthenticated) {
+      toast.error("Please sign in to leave a review");
+      navigate("/login");
+      return;
+    }
+
+    if (!reviewForm.content.trim()) {
+      toast.error("Please write something in your review");
+      return;
+    }
+
+    if (reviewForm.rating < 1 || reviewForm.rating > 5) {
+      toast.error("Please select a rating between 1 and 5");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please sign in to leave a review");
+      navigate("/login");
+      return;
+    }
+
+    setIsSubmittingReview(true);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/review/create-review`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          campgroundId: id,
+          content: reviewForm.content.trim(),
+          rating: reviewForm.rating,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to submit review");
+      }
+
+      toast.success("Review submitted successfully!");
+      setReviewForm({ content: "", rating: 5 });
+      fetchReviews();
+    } catch (err) {
+      toast.error(err?.message || "Error submitting review");
+      console.error(err);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   const calculateAverageRating = () => {
     if (!reviews || reviews.length === 0) return 0;
     const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
@@ -277,8 +370,6 @@ const ViewCampground = () => {
   const latValue = Number.parseFloat(campground?.latitude);
   const lngValue = Number.parseFloat(campground?.longitude);
   const hasCoordinates = Number.isFinite(latValue) && Number.isFinite(lngValue);
-  const latitudeDisplay = hasCoordinates ? latValue.toFixed(6) : campground?.latitude;
-  const longitudeDisplay = hasCoordinates ? lngValue.toFixed(6) : campground?.longitude;
   const isOwner = state?.user?.id && campground?.ownerId && Number(state.user.id) === Number(campground.ownerId);
 
   useEffect(() => {
@@ -575,12 +666,87 @@ const ViewCampground = () => {
                   </div>
                 </div>
 
+                {state?.isAuthenticated && !isOwner && (
+                  <form onSubmit={handleSubmitReview} className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-4">Write a Review</h3>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-slate-600 mb-2">Your Rating</label>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewForm((prev) => ({ ...prev, rating: star }))}
+                            onMouseEnter={() => setHoverRating(star)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            className="p-1 transition-transform hover:scale-110 focus:outline-none"
+                          >
+                            <Star
+                              className={`h-6 w-6 transition-colors ${
+                                star <= (hoverRating || reviewForm.rating) ? "text-yellow-400 fill-yellow-400" : "text-slate-300"
+                              }`}
+                            />
+                          </button>
+                        ))}
+                        <span className="ml-2 text-sm font-medium text-slate-600">{reviewForm.rating}/5</span>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <label htmlFor="reviewContent" className="block text-sm font-medium text-slate-600 mb-2">
+                        Your Experience
+                      </label>
+                      <textarea
+                        id="reviewContent"
+                        value={reviewForm.content}
+                        onChange={(e) => setReviewForm((prev) => ({ ...prev, content: e.target.value }))}
+                        placeholder="Share your experience at this campground..."
+                        rows={4}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 transition focus:border-[#164E63] focus:outline-none focus:ring-2 focus:ring-[#164E63]/20 resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingReview || !reviewForm.content.trim()}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#164E63] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0E7490] disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      {isSubmittingReview ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          Submit Review
+                        </>
+                      )}
+                    </button>
+
+                    <p className="mt-3 text-xs text-slate-500">Note: You need to have a completed booking to leave a review.</p>
+                  </form>
+                )}
+
+                {!state?.isAuthenticated && (
+                  <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm text-slate-600 mb-3">Want to share your experience? Sign in to leave a review.</p>
+                    <Link
+                      to="/login"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#164E63] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0E7490]"
+                    >
+                      Sign in to review
+                    </Link>
+                  </div>
+                )}
+
                 <div>
                   {hasReviews ? (
                     <div className="space-y-4">
-                      {reviews.map((review) => (
+                      {reviews.map((review, index) => (
                         <div
-                          key={review.reviewId}
+                          key={review.id || `${review.username}-${index}`}
                           className="rounded-xl border border-slate-200 p-5 transition hover:border-slate-300"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -590,9 +756,7 @@ const ViewCampground = () => {
                               </div>
                               <div>
                                 <p className="text-sm font-semibold text-slate-900">{review.username || "Guest"}</p>
-                                {review.createdAt && (
-                                  <p className="text-xs text-slate-500">{new Date(review.createdAt).toLocaleDateString()}</p>
-                                )}
+                                {review.email && <p className="text-xs text-slate-500">{review.email}</p>}
                               </div>
                             </div>
                             <div className="flex items-center gap-1">
@@ -607,7 +771,7 @@ const ViewCampground = () => {
                               <span className="ml-1 text-xs font-semibold text-slate-500">{review.rating}/5</span>
                             </div>
                           </div>
-                          <p className="mt-4 text-sm leading-relaxed text-slate-600">{review.comment}</p>
+                          {review.content && <p className="mt-4 text-sm leading-relaxed text-slate-600">{review.content}</p>}
                         </div>
                       ))}
                     </div>
@@ -626,7 +790,7 @@ const ViewCampground = () => {
               <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Starting at</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pricing</p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-4xl font-semibold text-[#164E63]">${campground.price}</span>
                       <span className="text-sm text-slate-500">/ night</span>
@@ -663,21 +827,6 @@ const ViewCampground = () => {
                 >
                   {isFavorite ? "Remove from saved" : "Save for later"}
                 </button>
-
-                <div className="mt-6 space-y-3 text-sm text-slate-600">
-                  <div className="flex items-start gap-2.5">
-                    <Check className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <span>Flexible cancellation up to 48 hours before check-in</span>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <Check className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <span>Charged only after host confirmation</span>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <Check className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <span>Secure payments and instant notifications</span>
-                  </div>
-                </div>
               </div>
 
               {ownerInfo && (
@@ -697,23 +846,6 @@ const ViewCampground = () => {
                   </p>
                 </div>
               )}
-
-              <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-cyan-50 p-6 shadow-sm ring-1 ring-slate-900/5">
-                <div className="flex items-center gap-3 mb-3">
-                  <Clock className="h-5 w-5 text-[#164E63]" />
-                  <h3 className="text-sm font-semibold text-slate-900">Need assistance?</h3>
-                </div>
-                <p className="text-sm leading-relaxed text-slate-600">
-                  Our support team is available 24/7 to help with route planning, weather updates, and trip preparation.
-                </p>
-                <Link
-                  to="/campgrounds"
-                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#164E63] hover:text-[#0E7490] transition"
-                >
-                  Explore more campgrounds
-                  <span>→</span>
-                </Link>
-              </div>
             </aside>
           </div>
         </div>

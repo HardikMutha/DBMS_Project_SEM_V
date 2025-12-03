@@ -58,7 +58,7 @@ const CampgroundBooking = () => {
 
   const [loading, setLoading] = useState(true);
   const [campground, setCampground] = useState(null);
-  const [bookingForm, setBookingForm] = useState({ checkInDate: "", checkOutDate: "" });
+  const [bookingForm, setBookingForm] = useState({ checkInDate: "", checkOutDate: "", guestCount: 1 });
   const [bookingError, setBookingError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -112,7 +112,7 @@ const CampgroundBooking = () => {
       const today = new Date();
       const defaultCheckIn = formatDateForInput(addDays(today, 1));
       const defaultCheckOut = formatDateForInput(addDays(today, 2));
-      setBookingForm({ checkInDate: defaultCheckIn, checkOutDate: defaultCheckOut });
+      setBookingForm({ checkInDate: defaultCheckIn, checkOutDate: defaultCheckOut, guestCount: 1 });
       setBookingError("");
     }
   }, [campground]);
@@ -130,6 +130,12 @@ const CampgroundBooking = () => {
       }
       return nextState;
     });
+    setBookingError("");
+  };
+
+  const handleGuestCountChange = (event) => {
+    const value = Math.max(1, Math.min(Number(event.target.value) || 1, campground?.capacity || 10));
+    setBookingForm((prev) => ({ ...prev, guestCount: value }));
     setBookingError("");
   };
 
@@ -157,6 +163,16 @@ const CampgroundBooking = () => {
       return;
     }
 
+    if (bookingForm.guestCount < 1) {
+      setBookingError("At least 1 guest is required.");
+      return;
+    }
+
+    if (campground?.capacity && bookingForm.guestCount > campground.capacity) {
+      setBookingError(`Guest count cannot exceed the campground capacity of ${campground.capacity}.`);
+      return;
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("Please sign in to complete your booking");
@@ -178,6 +194,7 @@ const CampgroundBooking = () => {
           checkInDate: bookingForm.checkInDate,
           checkOutDate: bookingForm.checkOutDate,
           amount: nightlyRate,
+          guestCount: bookingForm.guestCount,
         }),
       });
 
@@ -335,12 +352,37 @@ const CampgroundBooking = () => {
                     </label>
                   </div>
 
+                  <label className="flex flex-col gap-2 text-sm font-medium text-slate-600">
+                    <span className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Number of Guests
+                      {campground?.capacity && (
+                        <span className="text-xs font-normal text-slate-400">(Max: {campground.capacity})</span>
+                      )}
+                    </span>
+                    <input
+                      type="number"
+                      value={bookingForm.guestCount}
+                      min={1}
+                      max={campground?.capacity || 10}
+                      onChange={handleGuestCountChange}
+                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 transition focus:border-[#164E63] focus:outline-none focus:ring-2 focus:ring-[#164E63]/20"
+                      placeholder="Enter number of guests"
+                    />
+                  </label>
+
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                     {nights > 0 ? (
                       <div className="space-y-3 text-sm text-slate-600">
                         <div className="flex items-center justify-between">
                           <span>Stay duration</span>
                           <span className="font-semibold text-slate-900">{nights === 1 ? "1 night" : `${nights} nights`}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Guests</span>
+                          <span className="font-medium text-slate-900">
+                            {bookingForm.guestCount} {bookingForm.guestCount === 1 ? "guest" : "guests"}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span>Nightly rate</span>

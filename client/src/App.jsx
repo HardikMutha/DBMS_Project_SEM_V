@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
@@ -17,7 +18,31 @@ import CampgroundBooking from "./Pages/CampgroundBooking";
 import ManageCampground from "./Pages/ManageCampground";
 import NotFound from "./Pages/NotFound";
 import useAuthContext from "./hooks/useAuthContext";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
+
+function RedirectWithToast({ message = "Please login to continue" }) {
+  useEffect(() => {
+    toast.error(message, {
+      duration: 4000,
+      style: {
+        background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+        color: "#fff",
+        padding: "16px 20px",
+        borderRadius: "12px",
+        fontSize: "14px",
+        fontWeight: "500",
+        boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+        border: "1px solid rgba(239, 68, 68, 0.3)",
+      },
+      iconTheme: {
+        primary: "#ef4444",
+        secondary: "#fff",
+      },
+    });
+  }, []);
+
+  return <Navigate to="/login" replace />;
+}
 
 function App() {
   const { state } = useAuthContext();
@@ -42,45 +67,99 @@ function App() {
                 ) : state?.role === "admin" ? (
                   <Navigate to="/admin/dashboard" replace />
                 ) : (
-                  <Navigate to="/login" replace />
+                  <RedirectWithToast message="Please login to view your profile" />
                 )
               ) : (
-                <Navigate to="/login" replace />
+                <RedirectWithToast message="Please login to view your profile" />
               )
             }
           />
           <Route
             path="/admin/dashboard"
-            element={state?.isAuthenticated && state?.role === "admin" ? <AdminDashboard /> : <Login />}
+            element={
+              state?.isAuthenticated && state?.role === "admin" ? (
+                <AdminDashboard />
+              ) : (
+                <RedirectWithToast message="Admin access required" />
+              )
+            }
           />
           <Route
             path="/admin/manage-users"
-            element={state?.isAuthenticated && state?.role === "admin" ? <ManageUsers /> : <Login />}
+            element={
+              state?.isAuthenticated && state?.role === "admin" ? (
+                <ManageUsers />
+              ) : (
+                <RedirectWithToast message="Admin access required" />
+              )
+            }
           />
           <Route
             path="/admin/manage-campgrounds"
-            element={state?.isAuthenticated && state?.role === "admin" ? <ManageCampgrounds /> : <Login />}
+            element={
+              state?.isAuthenticated && state?.role === "admin" ? (
+                <ManageCampgrounds />
+              ) : (
+                <RedirectWithToast message="Admin access required" />
+              )
+            }
           />
           <Route
             path="/admin/manage-bookings"
-            element={state?.isAuthenticated && state?.role === "admin" ? <ManageBookings /> : <Login />}
+            element={
+              state?.isAuthenticated && state?.role === "admin" ? (
+                <ManageBookings />
+              ) : (
+                <RedirectWithToast message="Admin access required" />
+              )
+            }
           />
           <Route
             path="/admin/manage-reviews"
-            element={state?.isAuthenticated && state?.role === "admin" ? <ManageReviews /> : <Login />}
+            element={
+              state?.isAuthenticated && state?.role === "admin" ? (
+                <ManageReviews />
+              ) : (
+                <RedirectWithToast message="Admin access required" />
+              )
+            }
           />
           <Route
             path="/admin/manage-requests"
-            element={state?.isAuthenticated && state?.role === "admin" ? <ManageRequests /> : <Login />}
+            element={
+              state?.isAuthenticated && state?.role === "admin" ? (
+                <ManageRequests />
+              ) : (
+                <RedirectWithToast message="Admin access required" />
+              )
+            }
           />
           <Route
             path="/user/dashboard"
-            element={state?.isAuthenticated && state?.role === "user" ? <UserDashboard /> : <Login />}
+            element={
+              state?.isAuthenticated && state?.role === "user" ? (
+                <UserDashboard />
+              ) : (
+                <RedirectWithToast message="Please login to access your dashboard" />
+              )
+            }
           />
-          <Route path="/user/createcg" element={state?.isAuthenticated ? <CreateCG /> : <Login />} />
+          <Route
+            path="/user/createcg"
+            element={state?.isAuthenticated ? <CreateCG /> : <RedirectWithToast message="Please login to create a campground" />}
+          />
           <Route path="/campground/:id" element={<ViewCampground />} />
           <Route path="/campground/:id/book" element={<CampgroundBooking />} />
-          <Route path="/campground/:id/manage" element={state?.isAuthenticated ? <ManageCampground /> : <Login />} />
+          <Route
+            path="/campground/:id/manage"
+            element={
+              state?.isAuthenticated ? (
+                <ManageCampground />
+              ) : (
+                <RedirectWithToast message="Please login to manage your campground" />
+              )
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

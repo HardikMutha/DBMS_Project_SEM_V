@@ -12,7 +12,7 @@ export const createBooking = async (req, res) => {
     return res.status(401).json({ success: false, message: "Unauthorized to create a booking" });
   }
   const { campgroundId } = req.params;
-  const { checkInDate, checkOutDate, amount } = req?.body;
+  const { checkInDate, checkOutDate, amount, guestCount } = req?.body;
   const diffTime = new Date(checkOutDate) - new Date(checkInDate);
   const diffDays = diffTime / (1000 * 60 * 60 * 24);
   const amountToBePaid = diffDays * amount + diffDays * amount * 0.18;
@@ -24,10 +24,18 @@ export const createBooking = async (req, res) => {
     await connection.beginTransaction();
     const campground = await getCampgroundByIdQuery(connection, { campgroundId });
     if (!campground) {
+      await connection.rollback();
       return res.status(404).json({ success: false, message: "Campground not found" });
     }
     if (campground?.ownerId === userId) {
+      await connection.rollback();
       return res.status(409).json({ success: false, message: "Owners cannot book their own campgrounds" });
+    }
+    if (guestCount > campground?.capacity) {
+      await connection.rollback();
+      return res
+        .status(400)
+        .json({ success: false, message: `Guest count exceeds campground capacity of ${campground.capacity}` });
     }
     const result = await createBookingQuery(connection, {
       userId,
@@ -35,9 +43,10 @@ export const createBooking = async (req, res) => {
       checkInDate,
       checkOutDate,
       amount: amountToBePaid,
+      guestCount: guestCount || 4,
     });
 
-    const { newNotification, bookingNotification } = await createBookingNotificationQuery(connection, {
+    const { newNotification } = await createBookingNotificationQuery(connection, {
       bookingId: result?.insertId,
       userId,
     });
@@ -171,11 +180,11 @@ export const getCampgroundAnalytics = async (req, res) => {
     }
 
     const uniqueGuests = new Set(bookings.map((booking) => booking.userId));
-    const repeatGuests = uniqueGuests.size ? bookings.filter((booking, idx, arr) => arr.findIndex((b) => b.userId === booking.userId) !== idx).length : 0;
+    const repeatGuests = uniqueGuests.size
+      ? bookings.filter((booking, idx, arr) => arr.findIndex((b) => b.userId === booking.userId) !== idx).length
+      : 0;
 
-    const recentBookings = [...bookings]
-      .sort((a, b) => (a.createdAt && b.createdAt ? b.createdAt - a.createdAt : 0))
-      .slice(0, 5);
+    const recentBookings = [...bookings].sort((a, b) => (a.createdAt && b.createdAt ? b.createdAt - a.createdAt : 0)).slice(0, 5);
 
     const analytics = {
       campground: {

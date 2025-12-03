@@ -1,5 +1,5 @@
 import express from "express";
-import { addReview, getAllCampgroundReviews, getAllUserReviews, getCampgroundRating } from "../controllers/reviewConrtoller.js";
+import { addReview, getAllCampgroundReviews, getAllUserReviews, getCampgroundRating } from "../controllers/reviewController.js";
 import { authenticateUser } from "../middleware/authenticateUser.js";
 
 const router = express.Router();

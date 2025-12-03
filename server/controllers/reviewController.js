@@ -6,8 +6,8 @@ import {
   getCampgroundAverageRatingQuery,
 } from "../models/review.js";
 
-// Need to add constaint once booking is done :
-//    only users who had booked the campground can write review
+import { getBookingsByUserIdCampgroundIdQuery } from "../models/booking.js";
+
 export const addReview = async (req, res) => {
   const connection = await getDBConnection();
   if (!connection) {
@@ -16,11 +16,21 @@ export const addReview = async (req, res) => {
   const { campgroundId, content, rating } = req?.body;
   try {
     await connection.beginTransaction();
-    const result = await createReviewQuery(connection, { userId: req?.user?.id, campgroundId, content, rating });
-    // can send notification to owner
+    const userId = req.user?.id;
+    const hasBooking = await getBookingsByUserIdCampgroundIdQuery(connection, { userId, campgroundId });
+    if (!hasBooking || hasBooking.length === 0) {
+      return res.status(403).json({ success: false, message: "You need to have a booking to add a review" });
+    }
+    const currDate = new Date();
+
+    if (currDate.toISOString() < hasBooking[0].checkOutDate)
+      return res.status(403).json({ success: false, message: "You can add a review after checkout" });
+
+    const result = await createReviewQuery(connection, { userId, campgroundId, content, rating });
     await connection.commit();
-    return res.status(201).json({ success: true, message: "Added review" });
+    return res.status(201).json({ success: true, message: "Review Added Successfully" });
   } catch (error) {
+    connection.rollback();
     console.error(error?.message);
     return res.status(500).json({ success: false, message: error?.message || "Internal Server Error" });
   } finally {
@@ -40,6 +50,7 @@ export const getAllCampgroundReviews = async (req, res) => {
     await connection.commit();
     return res.status(200).json({ success: true, data });
   } catch (error) {
+    connection.rollback();
     console.error(error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   } finally {
@@ -59,6 +70,7 @@ export const getAllUserReviews = async (req, res) => {
     await connection.commit();
     return res.status(200).json({ success: true, data });
   } catch (error) {
+    connection.rollback();
     console.error(error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   } finally {
@@ -79,6 +91,7 @@ export const getCampgroundRating = async (req, res) => {
     await connection.commit();
     return res.status(200).json({ success: true, data });
   } catch (error) {
+    connection.rollback();
     console.error(error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   } finally {

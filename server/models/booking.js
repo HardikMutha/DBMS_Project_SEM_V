@@ -1,7 +1,7 @@
-export const createBookingQuery = async (connection, { userId, campgroundId, checkInDate, checkOutDate, amount }) => {
+export const createBookingQuery = async (connection, { userId, campgroundId, checkInDate, checkOutDate, amount, guestCount }) => {
   const [rows] = await connection.query(
-    `INSERT INTO Booking (userId, campgroundId, checkInDate, checkOutDate, createdAt,amount) VALUES (?, ?, ?, ?, ?, ?)`,
-    [userId, campgroundId, checkInDate, checkOutDate, new Date(), amount],
+    `INSERT INTO Booking (userId, campgroundId, checkInDate, checkOutDate, createdAt, amount, guestCount) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [userId, campgroundId, checkInDate, checkOutDate, new Date(), amount, guestCount]
   );
   return rows;
 };
@@ -20,5 +20,18 @@ export const getBookingsByCampgroundQuery = async (connection, { campgroundId })
      ORDER BY b.checkInDate ASC`,
     [campgroundId]
   );
+  return rows;
+};
+
+export const getBookingsByUserIdQuery = async (connection, { userId }) => {
+  const [rows] = await connection.query("SELECT * FROM Booking WHERE userId = ?", [userId]);
+  return rows;
+};
+
+export const getBookingsByUserIdCampgroundIdQuery = async (connection, { userId, campgroundId }) => {
+  const [rows] = await connection.query("SELECT * FROM Booking WHERE userId = ? AND campgroundId = ? ORDER BY checkOutDate ASC", [
+    userId,
+    campgroundId,
+  ]);
   return rows;
 };

@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticateUser } from "../middleware/authenticateUser.js";
+import { authenticateAdmin, authenticateUser } from "../middleware/authenticateUser.js";
 import {
   addCampgroundToFavourite,
   createCampground,
@@ -36,6 +36,7 @@ router.post(
 router.get("/get-campground/:id", getCampgroundById);
 router.get("/get-all-campgrounds", getAllApprovedCampgrounds);
 router.put("/update-campground/:id", authenticateUser, updateCampgroundDetails);
+router.delete("/delete-campground/:id", authenticateAdmin);
 router.post("/favourites/add", authenticateUser, addCampgroundToFavourite);
 router.delete("/favourites/remove", authenticateUser, removeCampgroundFromFavourites);
 

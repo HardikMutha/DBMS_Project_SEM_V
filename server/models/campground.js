@@ -34,7 +34,8 @@ export const getUserFavouritesQuery = async function (connection, id) {
 
 export const getOwnerInfoQuery = async function (connection, { campgroundId }) {
   const [rows] = await connection.query(
-    `SELECT u.username,u.email FROM Users AS u LEFT JOIN Campground AS cg ON u.id = ${campgroundId}`
+    `SELECT u.username,u.email FROM Users AS u JOIN Campground AS cg ON cg.ownerId = u.id WHERE cg.id = ?`,
+    [campgroundId]
   );
   return rows[0];
 };

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
@@ -18,34 +17,23 @@ import CampgroundBooking from "./Pages/CampgroundBooking";
 import ManageCampground from "./Pages/ManageCampground";
 import NotFound from "./Pages/NotFound";
 import useAuthContext from "./hooks/useAuthContext";
+import LoadingSpinner from "./components/LoadingSpinner";
 import toast, { Toaster } from "react-hot-toast";
 
 function RedirectWithToast({ message = "Please login to continue" }) {
-  useEffect(() => {
-    toast.error(message, {
-      duration: 4000,
-      style: {
-        background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
-        color: "#fff",
-        padding: "16px 20px",
-        borderRadius: "12px",
-        fontSize: "14px",
-        fontWeight: "500",
-        boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)",
-        border: "1px solid rgba(239, 68, 68, 0.3)",
-      },
-      iconTheme: {
-        primary: "#ef4444",
-        secondary: "#fff",
-      },
-    });
-  }, []);
-
-  return <Navigate to="/login" replace />;
+  toast.error(message);
+  return <Navigate to="/signup" replace />;
 }
 
 function App() {
   const { state } = useAuthContext();
+  if (state?.isLoading) {
+    return (
+      <div className="flex justify-center items-center h-[100vh] w-full">
+        <LoadingSpinner size="large" text="Loading...." />
+      </div>
+    );
+  }
   return (
     <>
       <Toaster />
@@ -58,22 +46,7 @@ function App() {
           />
           <Route path="/signup" element={<Signup />} />
           <Route path="/campgrounds" element={<BrowseCampgroundsPage />} />
-          <Route
-            path="/profile"
-            element={
-              state?.isAuthenticated ? (
-                state?.role === "user" ? (
-                  <Profile />
-                ) : state?.role === "admin" ? (
-                  <Navigate to="/admin/dashboard" replace />
-                ) : (
-                  <RedirectWithToast message="Please login to view your profile" />
-                )
-              ) : (
-                <RedirectWithToast message="Please login to view your profile" />
-              )
-            }
-          />
+
           <Route
             path="/admin/dashboard"
             element={

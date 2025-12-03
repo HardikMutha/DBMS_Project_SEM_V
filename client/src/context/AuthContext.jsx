@@ -8,7 +8,7 @@ const initialState = {
   role: null,
   token: "",
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true,
 };
 
 const authReducer = (state, action) => {

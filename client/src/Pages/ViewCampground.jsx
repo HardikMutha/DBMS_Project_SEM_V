@@ -159,6 +159,7 @@ const ViewCampground = () => {
         return;
       }
       const data = await response.json();
+      console.log("The data is ", data?.data);
       setCampground(data?.data?.campground);
       setOwnerInfo(data?.data?.ownerInfo);
     } catch (err) {

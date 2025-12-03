@@ -150,53 +150,10 @@ const UserDashboard = () => {
               </div>
             </div>
 
-            <div>
-              <h2 className="text-3xl font-semibold text-white mb-2">Quick Actions</h2>
-              <p className="text-white/70 mb-8">Everything you need at your fingertips</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Link to="/" state={{ openBrowse: true }} className="relative group cursor-pointer">
-                  <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg group-hover:opacity-100 transition-opacity" />
-                  <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl hover:border-cyan-400/50 transition-all p-6">
-                    <div className="text-4xl mb-4">🏕️</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Browse Campgrounds</h3>
-                    <p className="text-sm text-white/70">Explore available camping locations</p>
-                  </div>
-                </Link>
-
-                <Link to="/" className="relative group cursor-pointer">
-                  <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg group-hover:opacity-100 transition-opacity" />
-                  <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl hover:border-emerald-400/50 transition-all p-6">
-                    <div className="text-4xl mb-4">🏠</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Home</h3>
-                    <p className="text-sm text-white/70">Return to homepage</p>
-                  </div>
-                </Link>
-
-                <div className="relative group cursor-pointer">
-                  <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg group-hover:opacity-100 transition-opacity" />
-                  <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl hover:border-cyan-400/50 transition-all p-6">
-                    <div className="text-4xl mb-4">⭐</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Write Reviews</h3>
-                    <p className="text-sm text-white/70">Share your camping experiences</p>
-                  </div>
-                </div>
-
-                <Link to="/profile" className="relative group cursor-pointer">
-                  <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg group-hover:opacity-100 transition-opacity" />
-                  <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl hover:border-emerald-400/50 transition-all p-6">
-                    <div className="text-4xl mb-4">⚙️</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Profile Settings</h3>
-                    <p className="text-sm text-white/70">Update your account information</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-
             <div className="mt-16">
               <h2 className="text-3xl font-semibold text-white mb-2">My Bookings</h2>
               <p className="text-white/70 mb-8">Track your camping adventures</p>
 
-              {/* Current Bookings Section */}
               <div className="mb-12">
                 <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
@@ -224,7 +181,6 @@ const UserDashboard = () => {
                               <th className="px-6 py-4">Dates</th>
                               <th className="px-6 py-4">Guests</th>
                               <th className="px-6 py-4">Total</th>
-                              <th className="px-6 py-4">Status</th>
                               <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                           </thead>
@@ -256,16 +212,7 @@ const UserDashboard = () => {
                                     ${parseFloat(booking.total_price || 0).toFixed(2)}
                                   </div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusStyles(
-                                      booking.status,
-                                    )}`}
-                                  >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                                    {booking.status?.toUpperCase() || "UNKNOWN"}
-                                  </span>
-                                </td>
+
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                   <div className="flex items-center justify-end gap-3">
                                     <button
@@ -298,7 +245,12 @@ const UserDashboard = () => {
                                         title="Cancel Booking"
                                       >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                          />
                                         </svg>
                                       </button>
                                     )}
@@ -314,7 +266,6 @@ const UserDashboard = () => {
                 </div>
               </div>
 
-              {/* Booking History Section */}
               <div>
                 <h3 className="text-xl font-semibold text-white mb-4">Booking History</h3>
                 <div className="relative">
@@ -384,7 +335,7 @@ const UserDashboard = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <span
                                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusStyles(
-                                      booking.status,
+                                      booking.status
                                     )}`}
                                   >
                                     <span className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -465,7 +416,7 @@ const UserDashboard = () => {
                       <label className="block text-xs font-semibold text-white/40 uppercase mb-1">Status</label>
                       <span
                         className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${getStatusStyles(
-                          selectedBooking.status,
+                          selectedBooking.status
                         )}`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />

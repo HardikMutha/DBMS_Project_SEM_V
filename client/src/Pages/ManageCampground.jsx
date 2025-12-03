@@ -126,8 +126,6 @@ const ManageCampground = () => {
   const ongoingBookings = analytics?.bookings?.ongoing || [];
   const upcomingBookings = analytics?.bookings?.upcoming || [];
   const completedBookings = analytics?.bookings?.completed || [];
-  const revenueTrend = analytics?.revenueTrend || [];
-  const recentBookings = analytics?.recentBookings || [];
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -250,7 +248,7 @@ const ManageCampground = () => {
               <StatCard
                 icon={TrendingUp}
                 label="Total revenue"
-                value={formatCurrency(stats?.revenueTotal || 0)}
+                value={`$ ${stats?.revenueTotal}`}
                 accent="from-emerald-400/60 to-emerald-500/40"
               />
               <StatCard
@@ -318,11 +316,7 @@ const ManageCampground = () => {
 
                 <div className="mt-8 grid gap-6 lg:grid-cols-2">
                   <BookingPanel title="Ongoing stays" bookings={ongoingBookings} emptyLabel="No active stays right now" />
-                  <BookingPanel
-                    title="Upcoming arrivals"
-                    bookings={upcomingBookings}
-                    emptyLabel="No arrivals scheduled"
-                  />
+                  <BookingPanel title="Upcoming arrivals" bookings={upcomingBookings} emptyLabel="No arrivals scheduled" />
                 </div>
 
                 <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200">
@@ -344,73 +338,6 @@ const ManageCampground = () => {
                         <div className="flex items-center gap-2">
                           <span className="text-xs uppercase tracking-wide text-slate-400">Amount</span>
                           <span className="text-sm font-medium text-slate-800">{formatCurrency(booking.amount)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#164E63]/10">
-                    <Sparkles className="h-6 w-6 text-[#164E63]" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-semibold text-slate-900">Revenue trend</h2>
-                    <p className="mt-2 text-sm text-slate-600">
-                      Keep an eye on your booking momentum and identify seasonal spikes.
-                    </p>
-                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                      {revenueTrend.length === 0 && (
-                        <p className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-500">
-                          Not enough data to generate a trend yet.
-                        </p>
-                      )}
-                      {revenueTrend.map((entry) => (
-                        <div
-                          key={entry.month}
-                          className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4"
-                        >
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{entry.month}</p>
-                          <div className="mt-3 flex items-center justify-between">
-                            <p className="text-lg font-semibold text-slate-900">{formatCurrency(entry.total)}</p>
-                            <div className="h-2 w-16 overflow-hidden rounded-full bg-slate-200">
-                              <div
-                                className="h-full rounded-full bg-gradient-to-r from-[#164E63] to-cyan-500"
-                                style={{ width: `${Math.min(100, (entry.total / (stats?.revenueTotal || 1)) * 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200">
-                  <div className="bg-slate-50 px-6 py-4">
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Recent activity</h3>
-                  </div>
-                  <div className="divide-y divide-slate-100 bg-white">
-                    {recentBookings.length === 0 && (
-                      <p className="px-6 py-4 text-sm text-slate-500">No bookings yet. Share your listing to attract guests.</p>
-                    )}
-                    {recentBookings.map((booking) => (
-                      <div key={booking.bookingId} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800">{booking.username}</p>
-                          <p className="text-xs text-slate-500">Booked {formatTimeAgo(booking.createdAt)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs uppercase tracking-wide text-slate-400">Stay</p>
-                          <p className="text-sm font-medium text-slate-800">
-                            {formatDate(booking.checkInDate)} → {formatDate(booking.checkOutDate)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs uppercase tracking-wide text-slate-400">Revenue</p>
-                          <p className="text-sm font-medium text-slate-800">{formatCurrency(booking.amount)}</p>
                         </div>
                       </div>
                     ))}
@@ -569,14 +496,7 @@ const ManageCampground = () => {
 };
 
 const formatCurrency = (value) => {
-  if (value === undefined || value === null || value === "") return "--";
-  const numberValue = Number(value);
-  if (Number.isNaN(numberValue)) return value;
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0,
-  }).format(numberValue);
+  return value;
 };
 
 const formatDate = (dateString) => {
@@ -584,27 +504,6 @@ const formatDate = (dateString) => {
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return "--";
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-};
-
-const formatTimeAgo = (dateString) => {
-  if (!dateString) return "--";
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "--";
-  const diffMs = Date.now() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays <= 0) {
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    if (diffHours <= 0) {
-      const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
-      return `${diffMinutes} min ago`;
-    }
-    return `${diffHours} hr ago`;
-  }
-  if (diffDays < 30) {
-    return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
-  }
-  const diffMonths = Math.floor(diffDays / 30);
-  return `${diffMonths} mo ago`;
 };
 
 const StatCard = ({ icon: Icon, label, value, description, accent }) => (
@@ -645,7 +544,9 @@ const BookingPanel = ({ title, bookings, emptyLabel }) => (
         <div key={booking.bookingId} className="rounded-xl border border-white bg-white px-4 py-3 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-800">{booking.username || "Guest"}</p>
-            <span className="text-xs font-medium text-slate-500">{formatDateRange(booking.checkInDate, booking.checkOutDate)}</span>
+            <span className="text-xs font-medium text-slate-500">
+              {formatDateRange(booking.checkInDate, booking.checkOutDate)}
+            </span>
           </div>
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
             <span>{booking.email || "--"}</span>
@@ -668,4 +569,3 @@ const formatDateRange = (checkIn, checkOut) => {
 };
 
 export default ManageCampground;
-

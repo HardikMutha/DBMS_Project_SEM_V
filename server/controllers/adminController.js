@@ -1,5 +1,5 @@
 import { getDBConnection } from "../db/config.js";
-import { getBookingCount } from "../models/booking.js";
+import { getAllBookingsWithDetails, getBookingCount, deleteBookingById } from "../models/booking.js";
 import {
   getAllCampgrounds,
   getCampgroundCount,
@@ -119,6 +119,80 @@ export const getCampgroundRequest = async (req, res) => {
   } catch (error) {
     console.error("Error fetching campground request:", error);
     return res.status(500).json({ success: false, message: "Error fetching campground request" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const bookingManagement = async (req, res) => {
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Database connection error" });
+  }
+
+  try {
+    await connection.beginTransaction();
+    const rawBookings = await getAllBookingsWithDetails(connection);
+    const now = new Date();
+
+    const bookingsWithStatus = rawBookings.map((booking) => {
+      const checkIn = booking.check_in_date ? new Date(booking.check_in_date) : null;
+      const checkOut = booking.check_out_date ? new Date(booking.check_out_date) : null;
+
+      let status = "pending";
+      if (checkIn && checkOut) {
+        if (checkOut <= now) {
+          status = "completed";
+        } else if (checkIn > now) {
+          status = "pending";
+        } else {
+          status = "confirmed";
+        }
+      }
+
+      return {
+        ...booking,
+        status,
+      };
+    });
+
+    await connection.commit();
+    return res.status(200).json({ success: true, data: bookingsWithStatus });
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    await connection.rollback();
+    return res.status(500).json({ success: false, message: "Error fetching bookings" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const cancelBooking = async (req, res) => {
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Database connection error" });
+  }
+
+  try {
+    const { bookingId } = req.params;
+    if (!bookingId) {
+      return res.status(400).json({ success: false, message: "Booking ID is required" });
+    }
+
+    await connection.beginTransaction();
+    const affectedRows = await deleteBookingById(connection, { bookingId });
+
+    if (!affectedRows) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    await connection.commit();
+    return res.status(200).json({ success: true, message: "Booking cancelled successfully" });
+  } catch (error) {
+    console.error("Error cancelling booking:", error);
+    await connection.rollback();
+    return res.status(500).json({ success: false, message: "Error cancelling booking" });
   } finally {
     connection.release();
   }

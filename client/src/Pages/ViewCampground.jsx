@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { MapPin, Users, Tent, DollarSign, Share2, Heart, ArrowLeft, Star, Check, Navigation, Clock, Shield } from "lucide-react";
 import { BACKEND_URL } from "../../config";
@@ -16,6 +16,105 @@ const ViewCampground = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const { state } = useAuthContext();
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+
+  const initializeMap = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!mapRef.current || !window.L) {
+      return;
+    }
+
+    const lat = Number.parseFloat(campground?.latitude);
+    const lng = Number.parseFloat(campground?.longitude);
+
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      setMapError("Location data unavailable for this listing.");
+      return;
+    }
+
+    setMapError(null);
+
+    if (!mapInstanceRef.current) {
+      const map = window.L.map(mapRef.current, {
+        zoomControl: true,
+        scrollWheelZoom: true,
+      }).setView([lat, lng], 12);
+
+      window.L
+        .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "&copy; OpenStreetMap contributors",
+        })
+        .addTo(map);
+
+      markerRef.current = window.L.marker([lat, lng]).addTo(map);
+
+      if (campground.place || campground.title) {
+        markerRef.current.bindPopup(campground.place || campground.title);
+      }
+
+      mapInstanceRef.current = map;
+    } else {
+      mapInstanceRef.current.setView([lat, lng], 12);
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+        if (campground.place || campground.title) {
+          markerRef.current.bindPopup(campground.place || campground.title);
+        }
+      } else {
+        markerRef.current = window.L.marker([lat, lng]).addTo(mapInstanceRef.current);
+        if (campground.place || campground.title) {
+          markerRef.current.bindPopup(campground.place || campground.title);
+        }
+      }
+    }
+
+    setMapReady(true);
+    setTimeout(() => {
+      mapInstanceRef.current?.invalidateSize();
+    }, 300);
+  }, [campground?.latitude, campground?.longitude, campground?.place, campground?.title]);
+
+  const loadLeaflet = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (window.L) {
+      setMapLoaded(true);
+      return;
+    }
+
+    const existingScript = document.querySelector('script[src*="leaflet"]');
+    if (existingScript) {
+      existingScript.addEventListener("load", () => setMapLoaded(true), { once: true });
+    } else {
+      const stylesheetPresent = document.querySelector('link[href*="leaflet"]');
+      if (!stylesheetPresent) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
+        document.head.appendChild(link);
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
+      script.async = true;
+      script.addEventListener("load", () => setMapLoaded(true), { once: true });
+      script.addEventListener("error", () => setMapError("Map failed to load. Please refresh and try again."), {
+        once: true,
+      });
+      document.body.appendChild(script);
+    }
+  }, []);
 
   const fetchCampgroundDetails = useCallback(async () => {
     try {
@@ -155,6 +254,80 @@ const ViewCampground = () => {
     return `${BACKEND_URL}${normalized}`;
   };
 
+  const images = campground?.images || [];
+  const averageRating = calculateAverageRating();
+  const heroImage = resolveImageUrl(images[selectedImage]);
+  const thumbnailImages = images.map((image) => resolveImageUrl(image));
+  const hasHeroImage = Boolean(heroImage);
+  const displayRating = averageRating > 0 ? averageRating : "New";
+  const hasReviews = reviews.length > 0;
+
+  const place = campground?.place;
+  const capacity = campground?.capacity;
+  const type = campground?.type;
+  const price = campground?.price;
+
+  const quickFacts = [
+    place ? { label: "Location", value: place, icon: MapPin } : null,
+    capacity ? { label: "Capacity", value: `${capacity} guests`, icon: Users } : null,
+    type ? { label: "Type", value: type, icon: Tent } : null,
+    price ? { label: "Price", value: `${price}/night`, icon: DollarSign } : null,
+  ].filter(Boolean);
+
+  const latValue = Number.parseFloat(campground?.latitude);
+  const lngValue = Number.parseFloat(campground?.longitude);
+  const hasCoordinates = Number.isFinite(latValue) && Number.isFinite(lngValue);
+  const latitudeDisplay = hasCoordinates ? latValue.toFixed(6) : campground?.latitude;
+  const longitudeDisplay = hasCoordinates ? lngValue.toFixed(6) : campground?.longitude;
+  const isOwner = state?.user?.id && campground?.ownerId && Number(state.user.id) === Number(campground.ownerId);
+
+  useEffect(() => {
+    const lat = Number.parseFloat(campground?.latitude);
+    const lng = Number.parseFloat(campground?.longitude);
+    const coordsAvailable = Number.isFinite(lat) && Number.isFinite(lng);
+
+    if (!coordsAvailable) {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      markerRef.current = null;
+      setMapReady(false);
+      setMapError(null);
+      return;
+    }
+
+    setMapReady(false);
+    setMapError(null);
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (window.L) {
+      setMapLoaded(true);
+      initializeMap();
+    } else {
+      loadLeaflet();
+    }
+  }, [campground?.latitude, campground?.longitude, initializeMap, loadLeaflet]);
+
+  useEffect(() => {
+    if (mapLoaded) {
+      initializeMap();
+    }
+  }, [mapLoaded, initializeMap]);
+
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      markerRef.current = null;
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -178,23 +351,6 @@ const ViewCampground = () => {
       </div>
     );
   }
-
-  const images = campground?.images || [];
-  const averageRating = calculateAverageRating();
-  const heroImage = resolveImageUrl(images[selectedImage]);
-  const thumbnailImages = images.map((image) => resolveImageUrl(image));
-  const hasHeroImage = Boolean(heroImage);
-  const displayRating = averageRating > 0 ? averageRating : "New";
-  const hasReviews = reviews.length > 0;
-
-  const quickFacts = [
-    campground.place ? { label: "Location", value: campground.place, icon: MapPin } : null,
-    campground.capacity ? { label: "Capacity", value: `${campground.capacity} guests`, icon: Users } : null,
-    campground.type ? { label: "Type", value: campground.type, icon: Tent } : null,
-    campground.price ? { label: "Price", value: `${campground.price}/night`, icon: DollarSign } : null,
-  ].filter(Boolean);
-
-  const isOwner = state?.user?.id && campground?.ownerId && Number(state.user.id) === Number(campground.ownerId);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -350,7 +506,7 @@ const ViewCampground = () => {
                 </div>
               </section>
 
-              {(campground.place || campground.latitude || campground.longitude) && (
+              {(campground.place || hasCoordinates) && (
                 <section className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5 p-8">
                   <div className="flex items-start gap-4 mb-6">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#164E63]/10">
@@ -370,24 +526,38 @@ const ViewCampground = () => {
                           <p className="mt-2 text-base font-medium text-slate-800">{campground.place}</p>
                         </div>
                       )}
-                      {campground.latitude && (
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Latitude</p>
-                          <p className="mt-2 text-base font-medium text-slate-800">{campground.latitude}</p>
-                        </div>
-                      )}
-                      {campground.longitude && (
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Longitude</p>
-                          <p className="mt-2 text-base font-medium text-slate-800">{campground.longitude}</p>
-                        </div>
-                      )}
                     </div>
 
                     <p className="leading-relaxed">
-                      Use the coordinates above to pin the site in your preferred maps app. We recommend arriving before dusk to
+                      Use the coordinates above or the embedded map to plan your arrival. We recommend reaching before dusk to
                       settle in comfortably and review any on-site guidelines.
                     </p>
+
+                    {hasCoordinates ? (
+                      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                        <div ref={mapRef} className="relative h-64 w-full">
+                          {!mapReady && !mapError && (
+                            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-600">
+                              <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#164E63] border-t-transparent" />
+                              <p className="text-xs font-semibold uppercase tracking-[0.24em]">Loading map</p>
+                            </div>
+                          )}
+                          {mapError && (
+                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-sm font-medium text-rose-500">
+                              {mapError}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-2 bg-white/90 px-4 py-3 text-xs text-slate-500">
+                          <span>Map data © OpenStreetMap contributors</span>
+                          {campground.place && <span className="truncate text-right">{campground.place}</span>}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-700">
+                        Map view is currently unavailable for this listing.
+                      </div>
+                    )}
                   </div>
                 </section>
               )}

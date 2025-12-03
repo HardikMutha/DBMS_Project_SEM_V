@@ -1,7 +1,10 @@
 import { getDBConnection } from "../db/config.js";
-import { createBookingQuery } from "../models/booking.js";
+import { createBookingQuery, getBookingsByCampgroundQuery } from "../models/booking.js";
 import { getCampgroundByIdQuery } from "../models/campground.js";
 import { createBookingNotificationQuery } from "../models/notifications.js";
+import { getLocationById } from "../models/location.js";
+import { getImagesByCampgroundQuery } from "../models/images.js";
+import { getCampgroundReviewsQuery } from "../models/review.js";
 
 export const createBooking = async (req, res) => {
   const userId = req?.user?.id;
@@ -43,6 +46,170 @@ export const createBooking = async (req, res) => {
     return res.status(201).json({ success: true, data: { bookingInfo: result, newNotification } });
   } catch (err) {
     console.log(err);
+    return res.status(500).json({ success: false, message: err?.message || "Internal Server Error" });
+  } finally {
+    connection.release();
+  }
+};
+
+const toNumber = (value) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatBookings = (bookings) =>
+  bookings.map((booking) => ({
+    ...booking,
+    checkInDate: booking.checkInDate ? new Date(booking.checkInDate) : null,
+    checkOutDate: booking.checkOutDate ? new Date(booking.checkOutDate) : null,
+    createdAt: booking.createdAt ? new Date(booking.createdAt) : null,
+  }));
+
+export const getCampgroundAnalytics = async (req, res) => {
+  const userId = req?.user?.id;
+  const { campgroundId } = req.params;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Please sign in to view analytics" });
+  }
+
+  if (!campgroundId) {
+    return res.status(400).json({ success: false, message: "Campground ID is required" });
+  }
+
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+
+  try {
+    const campground = await getCampgroundByIdQuery(connection, { campgroundId });
+    if (!campground) {
+      return res.status(404).json({ success: false, message: "Campground not found" });
+    }
+
+    if (Number(campground.ownerId) !== Number(userId)) {
+      return res.status(403).json({ success: false, message: "You do not have access to this campground" });
+    }
+
+    const [location, imagesData, bookingsRaw, reviews] = await Promise.all([
+      campground?.locId ? getLocationById(connection, campground.locId) : null,
+      getImagesByCampgroundQuery(connection, { campgroundId: campground.id }),
+      getBookingsByCampgroundQuery(connection, { campgroundId: campground.id }),
+      getCampgroundReviewsQuery(connection, { campgroundId: campground.id }),
+    ]);
+
+    const images = imagesData.map((image) => image?.imgUrl);
+    const bookings = formatBookings(bookingsRaw);
+    const now = new Date();
+
+    const ongoingBookings = bookings.filter((booking) => {
+      if (!booking.checkInDate || !booking.checkOutDate) return false;
+      return booking.checkInDate <= now && booking.checkOutDate > now;
+    });
+
+    const upcomingBookings = bookings.filter((booking) => {
+      if (!booking.checkInDate) return false;
+      return booking.checkInDate > now;
+    });
+
+    const completedBookings = bookings.filter((booking) => {
+      if (!booking.checkOutDate) return false;
+      return booking.checkOutDate <= now;
+    });
+
+    const totalBookings = bookings.length;
+    const revenueTotal = bookings.reduce((sum, booking) => sum + Number(booking.amount || 0), 0);
+    const revenueUpcoming = upcomingBookings.reduce((sum, booking) => sum + Number(booking.amount || 0), 0);
+
+    const stayDurations = bookings
+      .map((booking) => {
+        if (!booking.checkInDate || !booking.checkOutDate) return 0;
+        return Math.max(0, (booking.checkOutDate - booking.checkInDate) / (1000 * 60 * 60 * 24));
+      })
+      .filter((nights) => nights > 0);
+
+    const averageStayLength = stayDurations.length
+      ? Number((stayDurations.reduce((sum, nights) => sum + nights, 0) / stayDurations.length).toFixed(1))
+      : 0;
+
+    const revenueByMonth = new Map();
+    bookings.forEach((booking) => {
+      if (!booking.createdAt) return;
+      const year = booking.createdAt.getFullYear();
+      const month = String(booking.createdAt.getMonth() + 1).padStart(2, "0");
+      const key = `${year}-${month}`;
+      revenueByMonth.set(key, (revenueByMonth.get(key) || 0) + Number(booking.amount || 0));
+    });
+
+    const revenueTrend = Array.from(revenueByMonth.entries())
+      .sort(([a], [b]) => (a > b ? 1 : -1))
+      .slice(-6)
+      .map(([month, total]) => ({ month, total }));
+
+    const totalReviewCount = reviews.length;
+    const averageRating = totalReviewCount
+      ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / totalReviewCount).toFixed(1))
+      : null;
+
+    const firstCheckIn = bookings.reduce((earliest, booking) => {
+      if (!booking.checkInDate) return earliest;
+      return !earliest || booking.checkInDate < earliest ? booking.checkInDate : earliest;
+    }, null);
+
+    const lastCheckOut = bookings.reduce((latest, booking) => {
+      if (!booking.checkOutDate) return latest;
+      return !latest || booking.checkOutDate > latest ? booking.checkOutDate : latest;
+    }, null);
+
+    let utilizationRate = null;
+    if (firstCheckIn && lastCheckOut) {
+      const totalNightsBooked = stayDurations.reduce((sum, nights) => sum + nights, 0);
+      const totalDaysRange = Math.max(1, (lastCheckOut - firstCheckIn) / (1000 * 60 * 60 * 24));
+      const capacity = toNumber(campground.capacity) || 1;
+      utilizationRate = Number(((totalNightsBooked / (totalDaysRange * capacity)) * 100).toFixed(1));
+    }
+
+    const uniqueGuests = new Set(bookings.map((booking) => booking.userId));
+    const repeatGuests = uniqueGuests.size ? bookings.filter((booking, idx, arr) => arr.findIndex((b) => b.userId === booking.userId) !== idx).length : 0;
+
+    const recentBookings = [...bookings]
+      .sort((a, b) => (a.createdAt && b.createdAt ? b.createdAt - a.createdAt : 0))
+      .slice(0, 5);
+
+    const analytics = {
+      campground: {
+        ...campground,
+        place: location?.place ?? null,
+        latitude: location?.latitude ?? null,
+        longitude: location?.longitude ?? null,
+        images,
+      },
+      stats: {
+        totalBookings,
+        upcomingBookings: upcomingBookings.length,
+        ongoingBookings: ongoingBookings.length,
+        completedBookings: completedBookings.length,
+        revenueTotal: Number(revenueTotal.toFixed(2)),
+        revenueUpcoming: Number(revenueUpcoming.toFixed(2)),
+        averageStayLength,
+        utilizationRate,
+        averageRating,
+        totalReviewCount,
+        repeatGuests,
+      },
+      bookings: {
+        ongoing: ongoingBookings,
+        upcoming: upcomingBookings,
+        completed: completedBookings.slice(-10),
+      },
+      revenueTrend,
+      recentBookings,
+    };
+
+    return res.status(200).json({ success: true, data: analytics });
+  } catch (err) {
+    console.error(err);
     return res.status(500).json({ success: false, message: err?.message || "Internal Server Error" });
   } finally {
     connection.release();

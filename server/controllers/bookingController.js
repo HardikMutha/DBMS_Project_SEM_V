@@ -12,7 +12,7 @@ export const createBooking = async (req, res) => {
     return res.status(401).json({ success: false, message: "Unauthorized to create a booking" });
   }
   const { campgroundId } = req.params;
-  const { checkInDate, checkOutDate, amount } = req?.body;
+  const { checkInDate, checkOutDate, guestCount, amount } = req?.body;
   const diffTime = new Date(checkOutDate) - new Date(checkInDate);
   const diffDays = diffTime / (1000 * 60 * 60 * 24);
   const amountToBePaid = diffDays * amount + diffDays * amount * 0.18;
@@ -34,6 +34,7 @@ export const createBooking = async (req, res) => {
       campgroundId: campground?.id,
       checkInDate,
       checkOutDate,
+      guestCount,
       amount: amountToBePaid,
     });
 

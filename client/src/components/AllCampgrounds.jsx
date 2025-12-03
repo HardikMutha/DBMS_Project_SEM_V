@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { BACKEND_URL } from "../../config";
 import toast from "react-hot-toast";
+import useAuthContext from "../hooks/useAuthContext";
 
 const AllCampgrounds = ({ searchQuery = "" }) => {
   const [campgrounds, setCampgrounds] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { state } = useAuthContext();
 
   useEffect(() => {
     fetchCampgrounds();
@@ -38,8 +40,18 @@ const AllCampgrounds = ({ searchQuery = "" }) => {
     );
   });
 
-  const handleViewDetails = (campgroundId) => {
-    navigate(`/campground/${campgroundId}`);
+  const handleViewDetails = (campground) => {
+    const loggedInUserId = state?.user?.id;
+    const ownerId = campground?.ownerId;
+
+    if (loggedInUserId && ownerId && Number(loggedInUserId) === Number(ownerId)) {
+      // Host is viewing their own campground – send them directly to analytics/manage page
+      navigate(`/campground/${campground.id}/manage`);
+      return;
+    }
+
+    // Regular users or non-owner hosts see the public campground page
+    navigate(`/campground/${campground.id}`);
   };
 
   if (loading) {
@@ -145,7 +157,7 @@ const AllCampgrounds = ({ searchQuery = "" }) => {
                   </div>
 
                   <button
-                    onClick={() => handleViewDetails(campground.id)}
+                    onClick={() => handleViewDetails(campground)}
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-[#164E63] px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-cyan-400 hover:to-[#155E75]"
                   >
                     View details

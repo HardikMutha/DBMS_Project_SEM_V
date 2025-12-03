@@ -1,5 +1,5 @@
 import { getDBConnection } from "../db/config.js";
-import { createBookingQuery, getBookingsByCampgroundQuery } from "../models/booking.js";
+import { createBookingQuery, getBookingsByCampgroundQuery, getBookingsByUserId, deleteBookingById } from "../models/booking.js";
 import { getCampgroundByIdQuery } from "../models/campground.js";
 import { createBookingNotificationQuery } from "../models/notifications.js";
 import { getLocationById } from "../models/location.js";
@@ -220,6 +220,101 @@ export const getCampgroundAnalytics = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: err?.message || "Internal Server Error" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const getUserBookings = async (req, res) => {
+  const userId = req?.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+
+  try {
+    await connection.beginTransaction();
+    const rawBookings = await getBookingsByUserId(connection, { userId });
+    const now = new Date();
+
+    const bookingsWithStatus = rawBookings.map((booking) => {
+      const checkIn = booking.check_in_date ? new Date(booking.check_in_date) : null;
+      const checkOut = booking.check_out_date ? new Date(booking.check_out_date) : null;
+
+      let status = "pending";
+      if (checkIn && checkOut) {
+        if (checkOut <= now) {
+          status = "completed";
+        } else if (checkIn > now) {
+          status = "pending";
+        } else {
+          status = "confirmed";
+        }
+      }
+
+      return {
+        ...booking,
+        status,
+      };
+    });
+
+    await connection.commit();
+    return res.status(200).json({ success: true, data: bookingsWithStatus });
+  } catch (error) {
+    console.error("Error fetching user bookings:", error);
+    await connection.rollback();
+    return res.status(500).json({ success: false, message: "Error fetching bookings" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const cancelUserBooking = async (req, res) => {
+  const userId = req?.user?.id;
+  const { bookingId } = req.params;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  if (!bookingId) {
+    return res.status(400).json({ success: false, message: "Booking ID is required" });
+  }
+
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+
+  try {
+    await connection.beginTransaction();
+    
+    // First verify the booking belongs to the user
+    const userBookings = await getBookingsByUserId(connection, { userId });
+    const booking = userBookings.find((b) => b.booking_id === Number(bookingId));
+    
+    if (!booking) {
+      await connection.rollback();
+      return res.status(403).json({ success: false, message: "You can only cancel your own bookings" });
+    }
+
+    const affectedRows = await deleteBookingById(connection, { bookingId });
+
+    if (!affectedRows) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    await connection.commit();
+    return res.status(200).json({ success: true, message: "Booking cancelled successfully" });
+  } catch (error) {
+    console.error("Error cancelling booking:", error);
+    await connection.rollback();
+    return res.status(500).json({ success: false, message: "Error cancelling booking" });
   } finally {
     connection.release();
   }

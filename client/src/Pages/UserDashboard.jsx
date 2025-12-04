@@ -13,9 +13,12 @@ const UserDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [userCampgrounds, setUserCampgrounds] = useState([]);
+  const [isLoadingCampgrounds, setIsLoadingCampgrounds] = useState(true);
 
   useEffect(() => {
     fetchBookings();
+    fetchUserCampgrounds();
   }, []);
 
   const fetchBookings = async () => {
@@ -79,7 +82,28 @@ const UserDashboard = () => {
   };
 
   const currentBookings = bookings.filter((b) => b.status === "pending" || b.status === "confirmed");
-  const bookingHistory = bookings.filter((b) => b.status === "completed" || b.status === "cancelled");
+
+  const fetchUserCampgrounds = async () => {
+    setIsLoadingCampgrounds(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/campground/user-campgrounds`, {
+        headers: {
+          Authorization: `Bearer ${state.token}`,
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setUserCampgrounds(data.data || []);
+      } else {
+        toast.error(data.message || "Failed to load campgrounds");
+      }
+    } catch (error) {
+      console.error("Error fetching campgrounds:", error);
+      toast.error("Failed to load campgrounds");
+    } finally {
+      setIsLoadingCampgrounds(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -150,53 +174,10 @@ const UserDashboard = () => {
               </div>
             </div>
 
-            <div>
-              <h2 className="text-3xl font-semibold text-white mb-2">Quick Actions</h2>
-              <p className="text-white/70 mb-8">Everything you need at your fingertips</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Link to="/" state={{ openBrowse: true }} className="relative group cursor-pointer">
-                  <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg group-hover:opacity-100 transition-opacity" />
-                  <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl hover:border-cyan-400/50 transition-all p-6">
-                    <div className="text-4xl mb-4">🏕️</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Browse Campgrounds</h3>
-                    <p className="text-sm text-white/70">Explore available camping locations</p>
-                  </div>
-                </Link>
-
-                <Link to="/" className="relative group cursor-pointer">
-                  <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg group-hover:opacity-100 transition-opacity" />
-                  <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl hover:border-emerald-400/50 transition-all p-6">
-                    <div className="text-4xl mb-4">🏠</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Home</h3>
-                    <p className="text-sm text-white/70">Return to homepage</p>
-                  </div>
-                </Link>
-
-                <div className="relative group cursor-pointer">
-                  <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg group-hover:opacity-100 transition-opacity" />
-                  <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl hover:border-cyan-400/50 transition-all p-6">
-                    <div className="text-4xl mb-4">⭐</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Write Reviews</h3>
-                    <p className="text-sm text-white/70">Share your camping experiences</p>
-                  </div>
-                </div>
-
-                <Link to="/profile" className="relative group cursor-pointer">
-                  <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg group-hover:opacity-100 transition-opacity" />
-                  <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-xl backdrop-blur-xl hover:border-emerald-400/50 transition-all p-6">
-                    <div className="text-4xl mb-4">⚙️</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Profile Settings</h3>
-                    <p className="text-sm text-white/70">Update your account information</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-
             <div className="mt-16">
               <h2 className="text-3xl font-semibold text-white mb-2">My Bookings</h2>
               <p className="text-white/70 mb-8">Track your camping adventures</p>
 
-              {/* Current Bookings Section */}
               <div className="mb-12">
                 <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
@@ -224,7 +205,6 @@ const UserDashboard = () => {
                               <th className="px-6 py-4">Dates</th>
                               <th className="px-6 py-4">Guests</th>
                               <th className="px-6 py-4">Total</th>
-                              <th className="px-6 py-4">Status</th>
                               <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                           </thead>
@@ -256,16 +236,7 @@ const UserDashboard = () => {
                                     ${parseFloat(booking.total_price || 0).toFixed(2)}
                                   </div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusStyles(
-                                      booking.status,
-                                    )}`}
-                                  >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                                    {booking.status?.toUpperCase() || "UNKNOWN"}
-                                  </span>
-                                </td>
+
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                   <div className="flex items-center justify-end gap-3">
                                     <button
@@ -298,7 +269,12 @@ const UserDashboard = () => {
                                         title="Cancel Booking"
                                       >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                          />
                                         </svg>
                                       </button>
                                     )}
@@ -314,112 +290,50 @@ const UserDashboard = () => {
                 </div>
               </div>
 
-              {/* Booking History Section */}
               <div>
-                <h3 className="text-xl font-semibold text-white mb-4">Booking History</h3>
+                <h3 className="text-xl font-semibold text-white mb-4">My Campgrounds</h3>
                 <div className="relative">
                   <div className="absolute inset-0 rounded-3xl border border-white/10 bg-white/5 opacity-80 blur-lg" />
                   <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-950/75 shadow-2xl backdrop-blur-xl">
-                    {isLoading ? (
+                    {isLoadingCampgrounds ? (
                       <div className="flex items-center justify-center py-20">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
                       </div>
-                    ) : bookingHistory.length === 0 ? (
+                    ) : userCampgrounds.length === 0 ? (
                       <div className="relative p-12 text-center">
                         <div className="text-6xl mb-6 opacity-50">🏕️</div>
-                        <p className="text-xl text-white/90 mb-3 font-semibold">No booking history yet</p>
+                        <p className="text-xl text-white/90 mb-3 font-semibold">No campgrounds yet</p>
                         <p className="text-white/60 mb-8 max-w-md mx-auto">
-                          Start your camping journey by booking your first adventure!
+                          Start your hosting journey by creating your first campground!
                         </p>
                         <Link
-                          to="/"
-                          state={{ openBrowse: true }}
+                          to="/user/createcg"
                           className="inline-block px-8 py-3.5 rounded-2xl border border-white/15 bg-white/5 text-white text-sm font-semibold hover:border-cyan-400/50 hover:bg-white/10 transition-all shadow-lg"
                         >
-                          Browse Campgrounds
+                          Create Campground
                         </Link>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-left">
-                          <thead className="bg-white/5 border-b border-white/5 text-xs uppercase text-white/50 font-semibold tracking-wider">
-                            <tr>
-                              <th className="px-6 py-4">Booking</th>
-                              <th className="px-6 py-4">Campground</th>
-                              <th className="px-6 py-4">Dates</th>
-                              <th className="px-6 py-4">Guests</th>
-                              <th className="px-6 py-4">Total</th>
-                              <th className="px-6 py-4">Status</th>
-                              <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {bookingHistory.map((booking) => (
-                              <tr key={booking.booking_id} className="hover:bg-white/5 transition-colors group">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm font-medium text-white">#{booking.booking_id}</div>
-                                  <div className="text-xs text-white/50">
-                                    {booking.created_at ? new Date(booking.created_at).toLocaleDateString() : "N/A"}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <div className="text-sm font-medium text-white">{booking.campground_name || "Unknown"}</div>
-                                  <div className="text-xs text-white/50">{booking.campground_location || ""}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white/80">
-                                  <div>
-                                    {booking.check_in_date ? new Date(booking.check_in_date).toLocaleDateString() : "N/A"}{" "}
-                                    <span className="text-white/40">to</span>{" "}
-                                    {booking.check_out_date ? new Date(booking.check_out_date).toLocaleDateString() : "N/A"}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-white/80">
-                                  {booking.number_of_guests || booking.number_of_guests === 0 ? booking.number_of_guests : "N/A"}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm font-semibold text-white">
-                                    ${parseFloat(booking.total_price || 0).toFixed(2)}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusStyles(
-                                      booking.status,
-                                    )}`}
-                                  >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                                    {booking.status?.toUpperCase() || "UNKNOWN"}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedBooking(booking);
-                                      setShowModal(true);
-                                    }}
-                                    className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
-                                    title="View Details"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                      />
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                      />
-                                    </svg>
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="divide-y divide-white/5">
+                        {userCampgrounds.map((campground) => (
+                          <div
+                            key={campground.id}
+                            className="flex items-center justify-between px-6 py-4 hover:bg-white/5 transition-colors group"
+                          >
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-white">{campground.title || "Untitled Campground"}</div>
+                              {campground.place && (
+                                <div className="text-xs text-white/50 mt-1">{campground.place}</div>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => navigate(`/campground/${campground.id}/manage`)}
+                              className="px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-white text-sm font-semibold hover:border-cyan-400/50 hover:bg-white/10 transition-all shadow-lg"
+                            >
+                              Analytics
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -465,7 +379,7 @@ const UserDashboard = () => {
                       <label className="block text-xs font-semibold text-white/40 uppercase mb-1">Status</label>
                       <span
                         className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${getStatusStyles(
-                          selectedBooking.status,
+                          selectedBooking.status
                         )}`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />

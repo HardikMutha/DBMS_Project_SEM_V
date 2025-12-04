@@ -347,3 +347,66 @@ export const getAllApprovedCampgrounds = async (req, res) => {
     connection.release();
   }
 };
+
+export const getAvailableCapacity = async (req, res) => {
+  const { campgroundId } = req.params;
+  const connection = await getDBConnection();
+  const { checkInDate, checkOutDate } = req.body;
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+  try {
+    await connection.beginTransaction();
+    const campground = await getCampgroundByIdQuery(connection, { campgroundId });
+    if (!campground) {
+      return res.status(404).json({ success: false, message: "Campground not found" });
+    }
+    const bookings = await getBookingsByCheckInOutDateIdQuery(connection, { campgroundId, checkInDate, checkOutDate });
+    if (!bookings || bookings.length === 0) {
+      return res.status(200).json({ success: true, data: { availableCapacity: campground.capacity } });
+    }
+    let bookedCount = 0;
+    bookings.forEach((booking) => {
+      bookedCount += booking.guestCount;
+    });
+
+    const availableCount = campground.capacity - bookedCount;
+    return res.status(200).json({ success: true, data: { availableCapacity: availableCount } });
+  } catch (error) {
+    connection.rollback();
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const getUserOwnedCampgrounds = async (req, res) => {
+  const userId = req?.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Please sign in to view your campgrounds" });
+  }
+
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "DB Connection Error" });
+  }
+
+  try {
+    const [rows] = await connection.query(
+      `SELECT c.*, l.place, l.latitude, l.longitude, 
+       (SELECT imgUrl FROM Images WHERE campgroundId = c.id LIMIT 1) as imageUrl
+       FROM Campground c 
+       LEFT JOIN Location l ON c.locId = l.id 
+       WHERE c.ownerId = ? 
+       ORDER BY c.id DESC`,
+      [userId]
+    );
+    return res.status(200).json({ success: true, data: rows });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });
+  } finally {
+    connection.release();
+  }
+};

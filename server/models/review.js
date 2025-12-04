@@ -18,7 +18,10 @@ export const createReviewQuery = async function (connection, { userId, campgroun
 };
 
 export const getCampgroundReviewsQuery = async function (connection, { campgroundId }) {
-  const [rows] = await connection.query(`SELECT * FROM Review WHERE campgroundId = ?`, [campgroundId]);
+  const [rows] = await connection.query(
+    `SELECT r.content,r.rating,u.username,u.email FROM Review AS r JOIN Users as u ON r.userId = u.id WHERE campgroundId = ? `,
+    [campgroundId]
+  );
   return rows;
 };
 

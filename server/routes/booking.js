@@ -4,6 +4,7 @@ import { createBooking, getCampgroundAnalytics, getUserBookings, cancelUserBooki
 const router = express.Router();
 
 router.post("/create-booking/:campgroundId", authenticateUser, createBooking);
+router.get("/get-all-bookings", authenticateUser);
 router.get("/campground/:campgroundId/analytics", authenticateUser, getCampgroundAnalytics);
 router.get("/user-bookings", authenticateUser, getUserBookings);
 router.post("/cancel/:bookingId", authenticateUser, cancelUserBooking);

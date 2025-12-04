@@ -61,6 +61,7 @@ const Signup = () => {
       });
 
       navigate("/");
+      window.location.reload();
     } catch (err) {
       setError(err.message || "An error occurred during signup");
     } finally {

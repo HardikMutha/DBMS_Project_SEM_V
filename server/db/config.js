@@ -1,10 +1,11 @@
 import mysql from "mysql2/promise";
+import fs from "fs";
 import dotenv from "dotenv";
 dotenv.config({ quiet: true });
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  user: "root",
+  user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_PROVIDER,
   port: process.env.DB_PORT,
@@ -15,6 +16,10 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  ssl: {
+    rejectUnauthorized: false,
+    ca: fs.readFileSync("./db/ca.pem"),
+  },
 });
 
 export const getDBConnection = async () => {
@@ -22,6 +27,7 @@ export const getDBConnection = async () => {
     const connection = await pool.getConnection();
     return connection;
   } catch (error) {
+    console.error(error);
     return null;
   }
 };

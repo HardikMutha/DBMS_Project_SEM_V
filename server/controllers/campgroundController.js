@@ -8,6 +8,7 @@ import {
   updateCampgroundDetailsQuery,
   deleteCampgroundQuery,
 } from "../models/campground.js";
+import { getBookingsByCheckInOutDateIdQuery } from "../models/booking.js";
 import { getCampgroundReviewsQuery } from "../models/review.js";
 import { createLocationQuery, getLocationById, updateLocationQuery } from "../models/location.js";
 import { addImagesQuery, getImagesByCampgroundQuery } from "../models/images.js";
@@ -406,6 +407,30 @@ export const getUserOwnedCampgrounds = async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });
+  } finally {
+    connection.release();
+  }
+};
+
+export const getFavouriteCampground = async (req, res) => {
+  const userId = req?.user?.id;
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, message: "Invalid Id" });
+  }
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "DB Connection Error" });
+  }
+  try {
+    await connection.beginTransaction();
+    const [data] = await connection.query(`SELECT * FROM HasFavourite WHERE userId = ? AND campgroundId = ?`, [userId, id]);
+    await connection.commit();
+    return res.status(200).json({ success: true, isFavourite: data && data.length ? data : null });
+  } catch (err) {
+    await connection.rollback();
+    console.log(err);
+    return res.status(500).json({ success: false, message: err?.message || "DB Connection Error" });
   } finally {
     connection.release();
   }

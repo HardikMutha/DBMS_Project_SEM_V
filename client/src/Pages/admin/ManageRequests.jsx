@@ -17,6 +17,10 @@ const ManageRequests = () => {
   const [rejectionContent, setRejectionContent] = useState("");
   const [rejectingRequest, setRejectingRequest] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approvingRequest, setApprovingRequest] = useState(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -44,11 +48,12 @@ const ManageRequests = () => {
     }
   };
 
-  const handleApproveRequest = async (requestId) => {
-    if (!requestId) return;
+  const handleApproveRequest = async () => {
+    if (!approvingRequest) return;
 
+    setIsApproving(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/requests/approve-request/${requestId}`, {
+      const res = await fetch(`${BACKEND_URL}/requests/approve-request/${approvingRequest.id}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${state?.token}`,
@@ -57,14 +62,24 @@ const ManageRequests = () => {
       const data = await res.json();
       if (data.success) {
         toast.success("Request approved successfully");
-        setRequests((prev) => prev.map((req) => (req.id === requestId ? { ...req, status: "approved" } : req)));
+        setRequests((prev) => prev.map((req) => (req.id === approvingRequest.id ? { ...req, status: "approved" } : req)));
+        setShowApproveModal(false);
+        setApprovingRequest(null);
+        window.location.reload();
       } else {
         toast.error(data.message || "Failed to approve request");
       }
     } catch (error) {
       console.error("Error approving request:", error);
       toast.error("Failed to approve request");
+    } finally {
+      setIsApproving(false);
     }
+  };
+
+  const openApproveModal = (request) => {
+    setApprovingRequest(request);
+    setShowApproveModal(true);
   };
 
   const handleRejectRequest = async () => {
@@ -73,35 +88,36 @@ const ManageRequests = () => {
       toast.error("Please provide a reason for rejection");
       return;
     }
+    setIsRejecting(true);
     try {
       const response = await fetch(`${BACKEND_URL}/requests/reject-request/${rejectingRequest.id}`, {
         method: "POST",
         body: JSON.stringify({ content: rejectionContent }),
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${state?.token}`,
         },
       });
       const data = await response.json();
       if (data.success) {
+        setRequests((prev) =>
+          prev.map((req) =>
+            req.id === rejectingRequest.id ? { ...req, status: "rejected", rejectionReason: rejectionContent } : req
+          )
+        );
         toast.success("Request rejected");
         setShowRejectModal(false);
         setRejectionContent("");
         setRejectingRequest(null);
-        fetchRequests();
+        window.location.reload();
+      } else {
+        toast.error(data.message || "Failed to reject request");
       }
-
-      setRequests((prev) =>
-        prev.map((req) =>
-          req.id === rejectingRequest.id ? { ...req, status: "rejected", rejectionReason: rejectionContent } : req
-        )
-      );
-      toast.success("Request rejected");
-      setShowRejectModal(false);
-      setRejectionContent("");
-      setRejectingRequest(null);
     } catch (err) {
       console.log(err);
       toast.error("Failed to reject request");
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -458,7 +474,7 @@ const ManageRequests = () => {
                               {(!request.status || request.status === "pending") && (
                                 <>
                                   <button
-                                    onClick={() => handleApproveRequest(request.id)}
+                                    onClick={() => openApproveModal(request)}
                                     className="p-2 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors"
                                     title="Approve"
                                   >
@@ -510,7 +526,9 @@ const ManageRequests = () => {
         request={selectedRequest}
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        onApprove={handleApproveRequest}
+        onApprove={(req) => {
+          openApproveModal(req);
+        }}
         onReject={openRejectModal}
         getStatusBadge={getStatusBadge}
       />
@@ -584,17 +602,33 @@ const ManageRequests = () => {
               <div className="bg-white/5 px-6 py-4 flex flex-row-reverse gap-3">
                 <button
                   onClick={handleRejectRequest}
-                  disabled={!rejectionContent.trim()}
+                  disabled={!rejectionContent.trim() || isRejecting}
                   className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                    rejectionContent.trim()
+                    rejectionContent.trim() && !isRejecting
                       ? "bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
                       : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
                   }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Reject Request
+                  {isRejecting ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Rejecting...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Reject Request
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => {
@@ -603,6 +637,108 @@ const ManageRequests = () => {
                     setRejectingRequest(null);
                   }}
                   className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl font-medium hover:bg-white/10 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approval Confirmation Modal */}
+      {showApproveModal && approvingRequest && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="approve-modal-title" role="dialog" aria-modal="true">
+          <div
+            className="fixed inset-0 z-10 bg-black/50"
+            onClick={() => {
+              if (!isApproving) {
+                setShowApproveModal(false);
+                setApprovingRequest(null);
+              }
+            }}
+            aria-hidden="true"
+          ></div>
+
+          <div className="fixed inset-0 z-20 flex items-center justify-center p-4">
+            <div className="relative bg-slate-800 border border-white/20 rounded-2xl text-left overflow-hidden shadow-2xl w-full max-w-md">
+              <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white" id="approve-modal-title">
+                  Approve Request
+                </h3>
+                <button
+                  onClick={() => {
+                    if (!isApproving) {
+                      setShowApproveModal(false);
+                      setApprovingRequest(null);
+                    }
+                  }}
+                  className="text-white/40 hover:text-white transition-colors"
+                  disabled={isApproving}
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
+                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Approving: {approvingRequest.title}</p>
+                    <p className="text-xs text-white/50">Requested by {approvingRequest.username}</p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-white/70">
+                  Are you sure you want to approve this campground request? Once approved, the campground will be visible to all
+                  users.
+                </p>
+              </div>
+
+              <div className="bg-white/5 px-6 py-4 flex flex-row-reverse gap-3">
+                <button
+                  onClick={handleApproveRequest}
+                  disabled={isApproving}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                    isApproving
+                      ? "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
+                      : "bg-green-500/20 border border-green-500/30 text-green-300 hover:bg-green-500/30"
+                  }`}
+                >
+                  {isApproving ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Approving...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Approve Request
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowApproveModal(false);
+                    setApprovingRequest(null);
+                  }}
+                  disabled={isApproving}
+                  className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl font-medium hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>

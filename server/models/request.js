@@ -7,16 +7,39 @@ export const createRequestQuery = async (connection, { requestedBy, campgroundId
 };
 
 export const getAllRequestsQuery = async (connection) => {
-  const [rows] =
-    await connection.query(`select temp2.requestId as id, temp2.status, place,longitude,latitude,username,email,title,description,capacity,type,price from Location as loc right join (
-	select * from Users as u RIGHT JOIN (
-	select req.id as requestId, req.status, title,description,capacity,type,locId,ownerId,isApproved,price,requestedBy from 
-	Request as req
-	LEFT JOIN 
-	Campground as cg 
-	on cg.id = req.campgroundId
-	) as temp on temp.requestedBy = u.id
-) as temp2 on loc.id = temp2.locId`);
+  const [rows] = await connection.query(`
+    SELECT 
+      temp2.requestId as id, 
+      temp2.campgroundId,
+      temp2.status, 
+      place, longitude, latitude, 
+      username, email, 
+      title, description, capacity, type, price 
+    FROM Location as loc 
+    RIGHT JOIN (
+      SELECT * FROM Users as u 
+      RIGHT JOIN (
+        SELECT 
+          req.id as requestId, 
+          req.campgroundId,
+          req.status, 
+          title, description, capacity, type, locId, ownerId, isApproved, price, requestedBy 
+        FROM Request as req
+        LEFT JOIN Campground as cg ON cg.id = req.campgroundId
+      ) as temp ON temp.requestedBy = u.id
+    ) as temp2 ON loc.id = temp2.locId
+  `);
+
+  // Fetch images for each request's campground
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].campgroundId) {
+      const [images] = await connection.query(`SELECT id, imgUrl FROM Images WHERE campgroundId = ?`, [rows[i].campgroundId]);
+      rows[i].images = images;
+    } else {
+      rows[i].images = [];
+    }
+  }
+
   return rows;
 };
 

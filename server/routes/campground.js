@@ -10,6 +10,7 @@ import {
   deleteCampground,
   getAvailableCapacity,
   getUserOwnedCampgrounds,
+  getFavouriteCampground,
 } from "../controllers/campgroundController.js";
 import { upload } from "../config/s3config.js";
 
@@ -40,6 +41,7 @@ router.get("/get-campground/:id", getCampgroundById);
 router.get("/get-all-campgrounds", getAllApprovedCampgrounds);
 router.put("/update-campground/:id", authenticateUser, updateCampgroundDetails);
 router.delete("/delete-campground/:id", authenticateAdmin, deleteCampground);
+router.get("/favourites/get/:id", authenticateUser, getFavouriteCampground);
 router.post("/favourites/add", authenticateUser, addCampgroundToFavourite);
 router.delete("/favourites/remove", authenticateUser, removeCampgroundFromFavourites);
 router.post("/get-available-capacity/:campgroundId", authenticateUser, getAvailableCapacity);

@@ -46,9 +46,11 @@ const ManageCampgrounds = () => {
   const handleDeleteCampground = async () => {
     if (!campgroundToDelete) return;
 
+    console.log(campgroundToDelete);
+
     setIsDeleting(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/campground/delete-campground/${campgroundToDelete.campgroundId}`, {
+      const response = await fetch(`${BACKEND_URL}/campground/delete-campground/${campgroundToDelete.id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${state?.token}`,
@@ -58,8 +60,7 @@ const ManageCampgrounds = () => {
       if (!data.success) {
         throw new Error(data?.message || "An Error Occurred");
       }
-      // Remove the deleted campground from state immediately
-      setCampgrounds((prev) => prev.filter((cg) => cg.campgroundId !== campgroundToDelete.campgroundId));
+      setCampgrounds((prev) => prev.filter((cg) => cg.id !== campgroundToDelete.id));
       toast.success("Campground Deleted Successfully");
       setShowDeleteModal(false);
       setCampgroundToDelete(null);

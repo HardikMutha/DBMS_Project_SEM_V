@@ -141,7 +141,6 @@ const ViewCampground = () => {
       if (!data.success) {
         throw new Error(data.message);
       }
-      console.log(data?.data);
       setReviews(data?.data);
     } catch (err) {
       toast.error(err?.message || "Error Fetching Reviews");
@@ -159,7 +158,6 @@ const ViewCampground = () => {
         return;
       }
       const data = await response.json();
-      console.log("The data is ", data?.data);
       setCampground(data?.data?.campground);
       setOwnerInfo(data?.data?.ownerInfo);
     } catch (err) {
@@ -171,9 +169,35 @@ const ViewCampground = () => {
     }
   }, [id, navigate]);
 
+  const fetchFavourite = async () => {
+    if (!state?.isAuthenticated) {
+      return;
+    }
+    try {
+      const response = await fetch(`${BACKEND_URL}/campground/favourites/get/${id}`, {
+        headers: {
+          Authorization: `Bearer ${state?.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!data.success) {
+        toast.error("Failed to fetch favourites");
+        return;
+      }
+      if (data?.isFavourite) {
+        setIsFavorite(true);
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message || "An Error Occurred");
+    }
+  };
+
   useEffect(() => {
     fetchCampgroundDetails();
     fetchReviews();
+    fetchFavourite();
   }, [fetchCampgroundDetails, fetchReviews]);
 
   const handleAddToFavorites = async () => {
@@ -194,7 +218,7 @@ const ViewCampground = () => {
       });
 
       const data = await response.json();
-      console.log(data);
+
       if (response.ok) {
         setIsFavorite(true);
         toast.success("Added to favorites!");
@@ -353,7 +377,7 @@ const ViewCampground = () => {
   const heroImage = resolveImageUrl(images[selectedImage]);
   const thumbnailImages = images.map((image) => resolveImageUrl(image));
   const hasHeroImage = Boolean(heroImage);
-  const displayRating = averageRating > 0 ? averageRating : "New";
+  const displayRating = averageRating > 0 ? averageRating : "No Reviews Yet !";
   const hasReviews = reviews.length > 0;
 
   const place = campground?.place;
@@ -505,7 +529,6 @@ const ViewCampground = () => {
                     <div className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 backdrop-blur-md">
                       <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                       <span className="text-sm font-semibold text-white">{displayRating}</span>
-                      <span className="text-sm text-white/70">{hasReviews ? `(${reviews.length})` : "(New)"}</span>
                     </div>
                   </div>
 

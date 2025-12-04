@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, MapPin } from "lucide-react";
+import { X, MapPin, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
+import { BACKEND_URL } from "../../config";
 
 const RequestDetailsModal = ({ request, isOpen, onClose, onApprove, onReject, getStatusBadge }) => {
+  console.log("HERE", request);
+
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -116,7 +120,6 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onApprove, onReject, ge
           </div>
 
           <div className="p-6 space-y-6">
-            {/* Request Status Banner */}
             <div
               className={`p-4 rounded-xl border ${
                 status === "pending"
@@ -139,7 +142,54 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onApprove, onReject, ge
               )}
             </div>
 
-            {/* Campground Details */}
+            {request.images && request.images.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold text-white/40 uppercase mb-3">Campground Images</h4>
+                <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                  <div className="relative h-64 bg-slate-900">
+                    <img
+                      src={
+                        request.images[selectedImageIndex]?.imgUrl?.startsWith("http")
+                          ? request.images[selectedImageIndex].imgUrl
+                          : `${BACKEND_URL}/${request.images[selectedImageIndex]?.imgUrl}`
+                      }
+                      alt={`${request.title} - Image ${selectedImageIndex + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {request.images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setSelectedImageIndex((prev) => (prev === 0 ? request.images.length - 1 : prev - 1))}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedImageIndex((prev) => (prev === request.images.length - 1 ? 0 : prev + 1))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+                    <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 rounded text-xs text-white">
+                      {selectedImageIndex + 1} / {request.images.length}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(!request.images || request.images.length === 0) && (
+              <div>
+                <h4 className="text-xs font-semibold text-white/40 uppercase mb-3">Campground Images</h4>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
+                  <ImageIcon className="w-12 h-12 text-white/20 mx-auto mb-3" />
+                  <p className="text-white/50 text-sm">No images uploaded for this campground</p>
+                </div>
+              </div>
+            )}
+
             <div>
               <h4 className="text-xs font-semibold text-white/40 uppercase mb-3">Campground Information</h4>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
@@ -168,7 +218,6 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onApprove, onReject, ge
               </div>
             </div>
 
-            {/* Map Section */}
             {hasCoordinates && (
               <div>
                 <h4 className="text-xs font-semibold text-white/40 uppercase mb-3">Location on Map</h4>
@@ -188,7 +237,6 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onApprove, onReject, ge
               </div>
             )}
 
-            {/* No Coordinates Message */}
             {!hasCoordinates && (
               <div>
                 <h4 className="text-xs font-semibold text-white/40 uppercase mb-3">Location on Map</h4>
@@ -199,7 +247,6 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onApprove, onReject, ge
               </div>
             )}
 
-            {/* Requester Details */}
             <div>
               <h4 className="text-xs font-semibold text-white/40 uppercase mb-3">Requested By</h4>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
@@ -215,12 +262,11 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onApprove, onReject, ge
               </div>
             </div>
 
-            {/* Actions */}
             {status === "pending" && (
               <div className="pt-4 border-t border-white/10 flex gap-3">
                 <button
                   onClick={() => {
-                    onApprove(request.id);
+                    onApprove(request);
                     onClose();
                   }}
                   className="flex-1 px-4 py-2.5 bg-green-500/20 border border-green-500/30 text-green-300 rounded-xl font-medium transition-colors hover:bg-green-500/30 flex items-center justify-center gap-2"

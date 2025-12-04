@@ -1,5 +1,4 @@
 import mysql from "mysql2/promise";
-import fs from "fs";
 import dotenv from "dotenv";
 dotenv.config({ quiet: true });
 
@@ -18,7 +17,7 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 0,
   ssl: {
     rejectUnauthorized: false,
-    ca: fs.readFileSync("./db/ca.pem"),
+    ca: process.env.DB_SSL_CERT,
   },
 });
 

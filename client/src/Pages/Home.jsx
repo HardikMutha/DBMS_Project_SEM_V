@@ -30,34 +30,40 @@ const Home = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden">
-      <Navbar variant="transparent" />
+    <div className="min-h-screen flex flex-col relative">
+      {/* Fixed background layer */}
       <div
-        className="flex-1 relative flex items-center justify-center px-4 sm:px-6 lg:px-8"
+        className="fixed inset-0 -z-10"
         style={{
-          background: `linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.7)), url('${campingBg}') center/cover no-repeat fixed`,
+          background: `linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.7)), url('${campingBg}') center/cover no-repeat`,
         }}
-      >
+      />
+
+      <Navbar variant="transparent" />
+
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-8 sm:pb-12 lg:pb-16">
         <div className="relative z-10 w-full max-w-6xl mx-auto">
-          <div className="text-center mb-12 lg:mb-16">
+          {/* Hero Text */}
+          <div className="text-center mb-8 sm:mb-10 lg:mb-12">
             <h1
-              className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight drop-shadow-lg"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 tracking-tight drop-shadow-lg"
               style={{ fontFamily: "Cantarell, sans-serif" }}
             >
               Find Your Perfect
-              <span className="block text-cyan-400 mt-2">Camping Experience</span>
+              <span className="block text-cyan-400 mt-1 sm:mt-2">Camping Experience</span>
             </h1>
-            <p className="text-lg sm:text-xl text-gray-200 max-w-2xl mx-auto font-light leading-relaxed drop-shadow-md">
+            <p className="text-base sm:text-lg md:text-xl text-gray-200 max-w-2xl mx-auto font-light leading-relaxed drop-shadow-md px-2">
               Discover amazing campgrounds, connect with nature, and create unforgettable memories with verified hosts.
             </p>
           </div>
 
-          <div className="w-full max-w-3xl mx-auto mb-16">
+          {/* Search Section */}
+          <div className="w-full max-w-3xl mx-auto mb-10 sm:mb-12 lg:mb-16 px-2">
             <form onSubmit={handleSearch} className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 left-0 pl-4 sm:pl-6 flex items-center pointer-events-none">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-gray-400 group-focus-within:text-cyan-500 transition-colors duration-300"
+                  className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400 group-focus-within:text-cyan-500 transition-colors duration-300"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -72,23 +78,23 @@ const Home = () => {
               </div>
               <input
                 type="text"
-                placeholder="Search for campgrounds, locations, or activities..."
+                placeholder="Search campgrounds, locations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-16 pr-36 py-5 bg-white/95 backdrop-blur-md border-0 rounded-full text-gray-900 placeholder-gray-500 text-lg focus:outline-none focus:ring-4 focus:ring-cyan-500/30 shadow-xl transition-all duration-300"
+                className="w-full pl-12 sm:pl-16 pr-24 sm:pr-32 md:pr-36 py-3.5 sm:py-4 md:py-5 bg-white/95 backdrop-blur-md border-0 rounded-full text-gray-900 placeholder-gray-500 text-sm sm:text-base md:text-lg focus:outline-none focus:ring-4 focus:ring-cyan-500/30 shadow-xl transition-all duration-300"
               />
               <button
                 type="submit"
-                className="absolute right-2 top-2 bottom-2 px-8 bg-[#164E63] hover:bg-[#113a4b] text-white rounded-full font-medium transition-colors duration-300 shadow-md flex items-center justify-center"
+                className="absolute right-1.5 sm:right-2 top-1.5 sm:top-2 bottom-1.5 sm:bottom-2 px-4 sm:px-6 md:px-8 bg-[#164E63] hover:bg-[#113a4b] text-white rounded-full font-medium text-sm sm:text-base transition-colors duration-300 shadow-md flex items-center justify-center"
               >
                 Search
               </button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 sm:mt-6 text-center">
               <button
                 onClick={handleBrowseClick}
-                className="inline-flex items-center gap-2 text-white/90 hover:text-white font-medium transition-colors duration-300 border-b border-transparent hover:border-cyan-400 pb-0.5 group"
+                className="inline-flex items-center gap-2 text-white/90 hover:text-white font-medium text-sm sm:text-base transition-colors duration-300 border-b border-transparent hover:border-cyan-400 pb-0.5 group"
               >
                 <span>Browse all available campgrounds</span>
                 <svg
@@ -104,10 +110,11 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            <div className="bg-black/40 backdrop-blur-md rounded-xl p-8 border border-white/10 hover:border-cyan-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-900/20 group text-left">
-              <div className="bg-white/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-cyan-500/20 transition-colors duration-300">
-                <svg className="w-6 h-6 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {/* Feature Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto px-2">
+            <div className="bg-black/40 backdrop-blur-md rounded-xl p-6 sm:p-8 border border-white/10 hover:border-cyan-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-900/20 group text-left">
+              <div className="bg-white/10 w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-cyan-500/20 transition-colors duration-300">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -116,15 +123,15 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Verified Locations</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Verified Locations</h3>
+              <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
                 Explore handpicked, verified camping destinations ensuring safety and quality.
               </p>
             </div>
 
-            <div className="bg-black/40 backdrop-blur-md rounded-xl p-8 border border-white/10 hover:border-cyan-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-900/20 group text-left">
-              <div className="bg-white/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-cyan-500/20 transition-colors duration-300">
-                <svg className="w-6 h-6 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-black/40 backdrop-blur-md rounded-xl p-6 sm:p-8 border border-white/10 hover:border-cyan-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-900/20 group text-left">
+              <div className="bg-white/10 w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-cyan-500/20 transition-colors duration-300">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -133,15 +140,15 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Trusted Reviews</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Trusted Reviews</h3>
+              <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
                 Read authentic experiences from fellow campers to help you choose the perfect spot.
               </p>
             </div>
 
-            <div className="bg-black/40 backdrop-blur-md rounded-xl p-8 border border-white/10 hover:border-cyan-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-900/20 group text-left">
-              <div className="bg-white/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-cyan-500/20 transition-colors duration-300">
-                <svg className="w-6 h-6 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-black/40 backdrop-blur-md rounded-xl p-6 sm:p-8 border border-white/10 hover:border-cyan-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-900/20 group text-left sm:col-span-2 lg:col-span-1">
+              <div className="bg-white/10 w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-cyan-500/20 transition-colors duration-300">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -150,14 +157,14 @@ const Home = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Easy Booking</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Easy Booking</h3>
+              <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
                 Secure your spot in just a few clicks with our seamless booking system.
               </p>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

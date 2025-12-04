@@ -84,36 +84,34 @@ const CampgroundBooking = () => {
   const isOwner = Boolean(userId && campground?.ownerId && Number(campground.ownerId) === userId);
   const canSubmitBooking = isAuthenticated && !isOwner && nights > 0 && !isSubmitting;
   const fetchAvailableCapacity = async (checkIn, checkOut) => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setAvailableCapacity(null);
-          return;
-        }
-        const response = await fetch(`${BACKEND_URL}/campground/get-available-capacity/${id}`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              checkInDate: checkIn,
-              checkOutDate: checkOut,
-            }),
-          }
-        );
-        if (!response.ok) {
-          throw new Error("Unable to load campground capacity");
-        }
-        const data = await response.json();
-        if (data?.success && data?.data?.availableCapacity != null) {
-          setAvailableCapacity(data.data.availableCapacity);
-        }
-      } catch (error) {
-        console.error(error);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setAvailableCapacity(null);
+        return;
       }
+      const response = await fetch(`${BACKEND_URL}/campground/get-available-capacity/${id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          checkInDate: checkIn,
+          checkOutDate: checkOut,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Unable to load campground capacity");
+      }
+      const data = await response.json();
+      if (data?.success && data?.data?.availableCapacity != null) {
+        setAvailableCapacity(data.data.availableCapacity);
+      }
+    } catch (error) {
+      console.error(error);
     }
+  };
 
   useEffect(() => {
     const fetchCampground = async () => {
@@ -231,7 +229,6 @@ const CampgroundBooking = () => {
           checkOutDate: bookingForm.checkOutDate,
           guestCount: bookingForm.guestCount,
           amount: nightlyRate,
-          guestCount: bookingForm.guestCount,
         }),
       });
 
@@ -391,7 +388,13 @@ const CampgroundBooking = () => {
                       <span>Available capacity</span>
                       <input
                         type="text"
-                        value={availableCapacity ? `${availableCapacity} guests` : campground.capacity ? `${campground.capacity} guests` : "N/A"}
+                        value={
+                          availableCapacity
+                            ? `${availableCapacity} guests`
+                            : campground.capacity
+                            ? `${campground.capacity} guests`
+                            : "N/A"
+                        }
                         disabled
                         className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-500"
                       />
@@ -403,38 +406,11 @@ const CampgroundBooking = () => {
                         min={1}
                         max={campground.capacity || 1}
                         value={bookingForm.guestCount}
-                        onChange={(e) =>
-                          setBookingForm((prev) => ({
-                            ...prev,
-                            guestCount: Math.min(
-                              Math.max(1, Number(e.target.value) || 1),
-                              availableCapacity || 1
-                            ),
-                          }))
-                        }
+                        onChange={handleGuestCountChange}
                         className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 transition focus:border-[#164E63] focus:outline-none focus:ring-2 focus:ring-[#164E63]/20"
                       />
                     </label>
                   </div>
-
-                  <label className="flex flex-col gap-2 text-sm font-medium text-slate-600">
-                    <span className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Number of Guests
-                      {campground?.capacity && (
-                        <span className="text-xs font-normal text-slate-400">(Max: {campground.capacity})</span>
-                      )}
-                    </span>
-                    <input
-                      type="number"
-                      value={bookingForm.guestCount}
-                      min={1}
-                      max={campground?.capacity || 10}
-                      onChange={handleGuestCountChange}
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 transition focus:border-[#164E63] focus:outline-none focus:ring-2 focus:ring-[#164E63]/20"
-                      placeholder="Enter number of guests"
-                    />
-                  </label>
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                     {nights > 0 ? (

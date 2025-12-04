@@ -15,10 +15,10 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
-  ssl: {
-    rejectUnauthorized: false,
-    ca: process.env.DB_SSL_CERT,
-  },
+  // ssl: {
+  //   rejectUnauthorized: false,
+  //   ca: process.env.DB_SSL_CERT,
+  // },
 });
 
 export const getDBConnection = async () => {

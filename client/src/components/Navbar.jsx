@@ -18,13 +18,10 @@ const Navbar = ({ variant = "transparent" }) => {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
       const response = await fetch(`${BACKEND_URL}/notifications`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${state?.token}`,
         },
       });
 

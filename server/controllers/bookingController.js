@@ -49,7 +49,7 @@ export const createBooking = async (req, res) => {
 
     const { newNotification } = await createBookingNotificationQuery(connection, {
       bookingId: result?.insertId,
-      userId,
+      userId: userId,
     });
 
     await connection.commit();

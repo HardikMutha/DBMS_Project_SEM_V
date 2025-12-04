@@ -49,6 +49,7 @@ const Login = () => {
         },
       });
       role === "user" ? navigate("/") : navigate("/admin/dashboard");
+      window.location.reload();
     } catch (err) {
       setError(err.message || "An error occurred during login");
     } finally {

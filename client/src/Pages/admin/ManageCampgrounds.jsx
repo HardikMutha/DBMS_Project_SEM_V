@@ -14,6 +14,9 @@ const ManageCampgrounds = () => {
   const [selectedCampground, setSelectedCampground] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [campgroundToDelete, setCampgroundToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchCampgrounds();
@@ -40,8 +43,42 @@ const ManageCampgrounds = () => {
     }
   };
 
-  const handleDeleteCampground = async (campgroundId) => {
-    toast.error("Delete functionality not implemented yet");
+  const handleDeleteCampground = async () => {
+    if (!campgroundToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/campground/delete-campground/${campgroundToDelete.campgroundId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${state?.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data?.message || "An Error Occurred");
+      }
+      // Remove the deleted campground from state immediately
+      setCampgrounds((prev) => prev.filter((cg) => cg.campgroundId !== campgroundToDelete.campgroundId));
+      toast.success("Campground Deleted Successfully");
+      setShowDeleteModal(false);
+      setCampgroundToDelete(null);
+    } catch (err) {
+      console.log(err);
+      toast.error(err?.message || "An Error Occurred");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openDeleteModal = (campground) => {
+    setCampgroundToDelete(campground);
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setCampgroundToDelete(null);
   };
 
   const getFilteredCampgrounds = () => {
@@ -277,7 +314,7 @@ const ManageCampgrounds = () => {
                             </button>
 
                             <button
-                              onClick={() => handleDeleteCampground(campground.id)}
+                              onClick={() => openDeleteModal(campground)}
                               className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
                               title="Delete"
                             >
@@ -370,6 +407,73 @@ const ManageCampgrounds = () => {
                     <label className="block text-xs font-semibold text-white/40 uppercase mb-1">Capacity</label>
                     <p className="text-xl font-bold text-white">{selectedCampground.capacity || 0} guests</p>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && campgroundToDelete && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="delete-modal-title" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 z-10 bg-black/60 backdrop-blur-sm" onClick={closeDeleteModal} aria-hidden="true"></div>
+
+          <div className="fixed inset-0 z-20 flex items-center justify-center p-4">
+            <div className="relative bg-slate-800 border border-white/20 rounded-2xl text-left overflow-hidden shadow-2xl w-full max-w-md">
+              <div className="p-6">
+                <div className="flex items-center justify-center w-14 h-14 mx-auto bg-red-500/20 rounded-full border border-red-500/30 mb-4">
+                  <svg className="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+
+                <h3 className="text-xl font-semibold text-white text-center mb-2">Delete Campground</h3>
+                <p className="text-white/60 text-center mb-2">Are you sure you want to delete this campground?</p>
+                <p className="text-white font-medium text-center mb-4 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
+                  {campgroundToDelete.title}
+                </p>
+                <p className="text-red-400/80 text-sm text-center mb-6">
+                  This action cannot be undone. All associated data including bookings and reviews will be permanently removed.
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={closeDeleteModal}
+                    disabled={isDeleting}
+                    className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl font-medium transition-colors hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteCampground}
+                    disabled={isDeleting}
+                    className="flex-1 px-4 py-2.5 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl font-medium transition-colors hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-300"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        Delete
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

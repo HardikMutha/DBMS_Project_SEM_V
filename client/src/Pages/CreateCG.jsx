@@ -37,11 +37,9 @@ const CreateCG = () => {
     }
 
     const map = window.L.map(mapRef.current).setView([20.5937, 78.9629], 5);
-    window.L
-      .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors",
-      })
-      .addTo(map);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
 
     map.on("click", async (e) => {
       const { lat, lng } = e.latlng;
@@ -188,7 +186,12 @@ const CreateCG = () => {
     formData.append("latitude", coordinates?.lat ?? "");
     formData.append("longitude", coordinates?.lng ?? "");
 
-    const addressParts = address ? address.split(",").map((part) => part.trim()).filter(Boolean) : [];
+    const addressParts = address
+      ? address
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean)
+      : [];
     const place = addressParts.slice(0, 2).join(", ");
     formData.append("place", place);
 
@@ -212,7 +215,10 @@ const CreateCG = () => {
         return;
       }
 
-      setMessage({ type: "success", text: data?.message || "Campground created successfully." });
+      setMessage({
+        type: "success",
+        text: data?.message || "Your Request has been Submitted. You will be notified once it has been Approved !",
+      });
       setTitle("");
       setDescription("");
       setCapacity("1");
@@ -255,7 +261,8 @@ const CreateCG = () => {
               </span>
               <h1 className="mt-6 text-4xl font-semibold leading-tight sm:text-5xl">Create a new campground listing</h1>
               <p className="mt-4 text-base text-white/75">
-                Share your favourite outdoor retreat with a growing community of explorers. Highlight amenities, showcase views, and make reservations effortless.
+                Share your favourite outdoor retreat with a growing community of explorers. Highlight amenities, showcase views,
+                and make reservations effortless.
               </p>
             </div>
 
@@ -272,7 +279,10 @@ const CreateCG = () => {
                   <form onSubmit={handleSubmit} className="mt-8 space-y-8">
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <label htmlFor="title" className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                        <label
+                          htmlFor="title"
+                          className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70"
+                        >
                           Title
                           <span className="text-rose-300">*</span>
                         </label>
@@ -303,7 +313,10 @@ const CreateCG = () => {
 
                       <div className="grid gap-6 sm:grid-cols-2">
                         <div className="space-y-2">
-                          <label htmlFor="capacity" className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                          <label
+                            htmlFor="capacity"
+                            className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70"
+                          >
                             Capacity
                             <span className="text-rose-300">*</span>
                           </label>
@@ -342,7 +355,10 @@ const CreateCG = () => {
 
                       <div className="grid gap-6 sm:grid-cols-2">
                         <div className="space-y-2">
-                          <label htmlFor="price" className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+                          <label
+                            htmlFor="price"
+                            className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.18em] text-white/70"
+                          >
                             Price per night
                             <span className="text-rose-300">*</span>
                           </label>
@@ -359,7 +375,7 @@ const CreateCG = () => {
                               required
                             />
                             <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm font-medium text-white/60">
-                              ₹
+                              $
                             </span>
                           </div>
                         </div>
@@ -397,10 +413,19 @@ const CreateCG = () => {
                         onDrop={handleDrop}
                         onClick={() => fileInputRef.current?.click()}
                         className={`mt-3 flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed px-6 py-10 text-center transition ${
-                          isDragging ? "border-cyan-300 bg-cyan-400/10" : "border-white/15 bg-white/5 hover:border-white/25 hover:bg-white/10"
+                          isDragging
+                            ? "border-cyan-300 bg-cyan-400/10"
+                            : "border-white/15 bg-white/5 hover:border-white/25 hover:bg-white/10"
                         }`}
                       >
-                        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileInput} className="hidden" />
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleFileInput}
+                          className="hidden"
+                        />
                         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-white/70">
                           <UploadCloud className="h-6 w-6" />
                         </span>
@@ -411,8 +436,15 @@ const CreateCG = () => {
                       {imagePreviews.length > 0 && (
                         <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
                           {imagePreviews.map((preview, idx) => (
-                            <div key={`${preview}-${idx}`} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur">
-                              <img src={preview} alt={`Preview ${idx + 1}`} className="h-36 w-full object-cover transition duration-300 group-hover:scale-105" />
+                            <div
+                              key={`${preview}-${idx}`}
+                              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur"
+                            >
+                              <img
+                                src={preview}
+                                alt={`Preview ${idx + 1}`}
+                                className="h-36 w-full object-cover transition duration-300 group-hover:scale-105"
+                              />
                               <button
                                 type="button"
                                 onClick={() => removeImage(idx)}

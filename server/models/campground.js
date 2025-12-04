@@ -85,3 +85,8 @@ export const getCampgroundRequestById = async function (connection, campgroundId
   const [rows] = await connection.query(`SELECT * FROM Request WHERE campgroundId = ?`, [campgroundId]);
   return rows;
 };
+
+export const deleteCampgroundQuery = async function (connection, { campgroundId }) {
+  const data = await connection.query(`DELETE FROM Campground as cg where cg.id = ?`, [campgroundId]);
+  return data;
+};

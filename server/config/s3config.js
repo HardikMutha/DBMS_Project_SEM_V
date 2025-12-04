@@ -1,4 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import path from "path";
 import crypto from "crypto";
 import multer from "multer";
@@ -50,7 +50,16 @@ export const upload = multer({
 
 export const deleteImagefromS3 = async (imageURL) => {
   try {
-    console.log(imageURL);
+    const urlParts = imageURL.split("/");
+    const key = urlParts.slice(3).join("/");
+    const deleteParams = {
+      Bucket: process.env.AWS_BUCKET_NAME || "",
+      Key: key,
+    };
+    console.log(key);
+    const command = new DeleteObjectCommand(deleteParams);
+    await s3Client.send(command);
+    console.log("Image deleted successfully");
   } catch (err) {
     console.error("An Error Occured");
     throw err;

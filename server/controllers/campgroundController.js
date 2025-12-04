@@ -6,12 +6,14 @@ import {
   removeFromFavouritesQuery,
   getAllApprovedCampgroundsQuery,
   updateCampgroundDetailsQuery,
+  deleteCampgroundQuery,
 } from "../models/campground.js";
 import { getCampgroundReviewsQuery } from "../models/review.js";
 import { createLocationQuery, getLocationById, updateLocationQuery } from "../models/location.js";
 import { addImagesQuery, getImagesByCampgroundQuery } from "../models/images.js";
 import { createRequestQuery } from "../models/request.js";
 import { getDBConnection } from "../db/config.js";
+import { deleteImagefromS3 } from "../config/s3config.js";
 
 export const createCampground = async (req, res) => {
   const connection = await getDBConnection();
@@ -157,16 +159,18 @@ export const updateCampgroundDetails = async (req, res) => {
           const requestedLongitude = wantsLongitudeUpdate ? Number.parseFloat(longitude) : numericExistingLongitude;
 
           if (
-            (numericExistingLatitude !== null && !Number.isNaN(numericExistingLatitude) && requestedLatitude !== numericExistingLatitude) ||
-            (numericExistingLongitude !== null && !Number.isNaN(numericExistingLongitude) && requestedLongitude !== numericExistingLongitude)
+            (numericExistingLatitude !== null &&
+              !Number.isNaN(numericExistingLatitude) &&
+              requestedLatitude !== numericExistingLatitude) ||
+            (numericExistingLongitude !== null &&
+              !Number.isNaN(numericExistingLongitude) &&
+              requestedLongitude !== numericExistingLongitude)
           ) {
             await connection.rollback();
-            return res
-              .status(400)
-              .json({
-                success: false,
-                message: "Updating coordinates is not allowed. Please contact support for assistance.",
-              });
+            return res.status(400).json({
+              success: false,
+              message: "Updating coordinates is not allowed. Please contact support for assistance.",
+            });
           }
         }
 
@@ -234,6 +238,38 @@ export const updateCampgroundDetails = async (req, res) => {
     connection.release();
   }
 };
+
+export const deleteCampground = async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, message: "No Campground Id Provided" });
+  }
+  const connection = await getDBConnection();
+  if (!connection) {
+    return res.status(500).json({ success: false, message: "Connection to database failed" });
+  }
+  try {
+    await connection.beginTransaction();
+    const rows = await getCampgroundByIdQuery(connection, { campgroundId: id });
+    if (!rows) {
+      return res.status(404).json({ success: false, message: "Campground Not found" });
+    }
+    const images = await getImagesByCampgroundQuery(connection, { campgroundId: id });
+    for (const img of images) {
+      await deleteImagefromS3(img.imgUrl);
+    }
+    const retval = await deleteCampgroundQuery(connection, { campgroundId: id });
+    await connection.commit();
+    return res.status(200).json({ success: true, message: "Deleted Successfully" });
+  } catch (err) {
+    await connection.rollback();
+    console.log(err);
+    return res.status(500).json({ success: false, message: err?.message || "An Error Occurred" });
+  } finally {
+    connection.release();
+  }
+};
+
 export const addCampgroundToFavourite = async (req, res) => {
   const userId = req?.user?.id;
   const { campgroundId } = req.body;
